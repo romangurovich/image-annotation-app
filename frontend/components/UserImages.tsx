@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Eye, MessageCircle, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 import type { UserImage } from "~backend/annotation/list_user_images";
@@ -8,6 +9,7 @@ export function UserImages() {
   const [images, setImages] = useState<UserImage[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadUserImages();
@@ -36,6 +38,10 @@ export function UserImages() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleViewImage = (imageId: number) => {
+    navigate(`/image/${imageId}`);
   };
 
   if (isLoading) {
@@ -91,13 +97,13 @@ export function UserImages() {
                 </div>
               </div>
 
-              <a
-                href={`/image/${image.id}`}
+              <button
+                onClick={() => handleViewImage(image.id)}
                 className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Eye className="h-4 w-4" />
                 View & Annotate
-              </a>
+              </button>
             </div>
           </div>
         ))}
