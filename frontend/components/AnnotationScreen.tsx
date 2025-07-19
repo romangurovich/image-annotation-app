@@ -24,6 +24,7 @@ export function AnnotationScreen({ imageId, shareToken }: AnnotationScreenProps)
   const [currentRadius, setCurrentRadius] = useState<number>(0);
   const [canEdit, setCanEdit] = useState(false);
   const [shareUrl, setShareUrl] = useState<string>("");
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -170,7 +171,7 @@ export function AnnotationScreen({ imageId, shareToken }: AnnotationScreenProps)
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !imageRef.current) return;
+    if (!canvas || !imageRef.current || !imageLoaded) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -213,7 +214,7 @@ export function AnnotationScreen({ imageId, shareToken }: AnnotationScreenProps)
       canvas.width = img.width;
       canvas.height = img.height;
       imageRef.current = img;
-      drawCanvas();
+      setImageLoaded(true);
     };
     img.src = imageUrl;
   };
@@ -225,8 +226,10 @@ export function AnnotationScreen({ imageId, shareToken }: AnnotationScreenProps)
   }, [imageUrl]);
 
   useEffect(() => {
-    drawCanvas();
-  }, [annotations, selectedAnnotation, isDrawing, startPoint, currentRadius]);
+    if (imageLoaded) {
+      drawCanvas();
+    }
+  }, [imageLoaded, annotations, selectedAnnotation, isDrawing, startPoint, currentRadius]);
 
   const getCanvasCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
