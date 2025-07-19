@@ -16,11 +16,9 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
   const [imageUrl, setImageUrl] = useState<string>("");
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
-  const [currentRadius, setCurrentRadius] = useState<number>(0);
   const [canEdit, setCanEdit] = useState(false);
   const [shareUrl, setShareUrl] = useState<string>("");
+  const [imageLoaded, setImageLoaded] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -166,7 +164,7 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas || !imageRef.current) return;
+    if (!canvas || !imageRef.current || !imageLoaded) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
@@ -187,17 +185,6 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
       ctx.fillStyle = selectedAnnotation?.id === annotation.id ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)";
       ctx.fill();
     });
-
-    // Draw current drawing circle if in drawing mode
-    if (isDrawing && startPoint && currentRadius > 0) {
-      ctx.beginPath();
-      ctx.arc(startPoint.x, startPoint.y, currentRadius, 0, 2 * Math.PI);
-      ctx.strokeStyle = "#10b981";
-      ctx.lineWidth = 2;
-      ctx.stroke();
-      ctx.fillStyle = "rgba(16, 185, 129, 0.1)";
-      ctx.fill();
-    }
   };
 
   const setupCanvas = () => {
@@ -209,7 +196,7 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
       canvas.width = img.width;
       canvas.height = img.height;
       imageRef.current = img;
-      drawCanvas();
+      setImageLoaded(true);
     };
     img.src = imageUrl;
   };
@@ -221,8 +208,10 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
   }, [imageUrl]);
 
   useEffect(() => {
-    drawCanvas();
-  }, [annotations, selectedAnnotation, isDrawing, startPoint, currentRadius]);
+    if (imageLoaded) {
+      drawCanvas();
+    }
+  }, [imageLoaded, annotations, selectedAnnotation]);
 
   const getCanvasCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -253,87 +242,6 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
       setSelectedAnnotation(clickedAnnotation);
     } else {
       setSelectedAnnotation(null);
-      if (canEdit) {
-        setIsDrawing(true);
-        setStartPoint(coords);
-        setCurrentRadius(0);
-      }
-    }
-  };
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPoint || !canEdit) return;
-
-    const coords = getCanvasCoordinates(event);
-    const radius = Math.sqrt(
-      Math.pow(coords.x - startPoint.x, 2) + Math.pow(coords.y - startPoint.y, 2)
-    );
-
-    setCurrentRadius(radius);
-  };
-
-  const handleMouseUp = async (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPoint || !canEdit) return;
-
-    const coords = getCanvasCoordinates(event);
-    const radius = Math.sqrt(
-      Math.pow(coords.x - startPoint.x, 2) + Math.pow(coords.y - startPoint.y, 2)
-    );
-
-    if (radius > 10) { // Minimum radius
-      try {
-        const params: any = {
-          imageId,
-          x: startPoint.x,
-          y: startPoint.y,
-          radius,
-        };
-        if (shareToken) {
-          params.shareToken = shareToken;
-        }
-        
-        const newAnnotation = await backend.annotation.createAnnotation(params);
-
-        setAnnotations([...annotations, newAnnotation]);
-        toast({
-          title: "Annotation created",
-          description: "Click on the circle to start a chat thread.",
-        });
-      } catch (error: any) {
-        console.error("Failed to create annotation:", error);
-        
-        if (error?.code === "permission_denied") {
-          toast({
-            title: "Permission denied",
-            description: "You don't have permission to create annotations.",
-            variant: "destructive",
-          });
-        } else if (error?.code === "resource_exhausted") {
-          toast({
-            title: "Rate limit exceeded",
-            description: error.message || "Too many annotations. Please wait before creating another.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Failed to create annotation",
-            description: "Could not create the annotation. Please try again.",
-            variant: "destructive",
-          });
-        }
-      }
-    }
-
-    setIsDrawing(false);
-    setStartPoint(null);
-    setCurrentRadius(0);
-  };
-
-  const handleMouseLeave = () => {
-    if (isDrawing) {
-      setIsDrawing(false);
-      setStartPoint(null);
-      setCurrentRadius(0);
     }
   };
 
@@ -345,10 +253,7 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
             <div className="flex items-center gap-2">
               <MessageCircle className="h-5 w-5 text-blue-600" />
               <span className="text-sm text-gray-600">
-                {canEdit 
-                  ? "Click and drag to create annotation circles. Click on circles to open chat."
-                  : "Click on circles to view chat messages."
-                }
+                Click on annotation circles to view chat messages.
               </span>
             </div>
             {canEdit && !shareToken && (
@@ -372,10 +277,7 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
             <canvas
               ref={canvasRef}
               onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseLeave}
-              className={`max-w-full h-auto ${canEdit ? 'cursor-crosshair' : 'cursor-pointer'}`}
+              className="max-w-full h-auto cursor-pointer"
               style={{ display: "block" }}
             />
           </div>
