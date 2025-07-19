@@ -98,17 +98,57 @@ export function AnnotationScreen({ imageId, shareToken }: AnnotationScreenProps)
     }
   };
 
+  const copyToClipboard = async (text: string) => {
+    try {
+      // Try modern clipboard API first
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        return true;
+      } else {
+        // Fallback for older browsers or non-secure contexts
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+        
+        if (successful) {
+          return true;
+        } else {
+          throw new Error('Copy command failed');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to copy to clipboard:', error);
+      return false;
+    }
+  };
+
   const createShareLink = async () => {
     try {
       const response = await backend.annotation.createShareLink({ imageId });
       setShareUrl(response.shareUrl);
       
-      // Copy to clipboard
-      await navigator.clipboard.writeText(response.shareUrl);
-      toast({
-        title: "Share link created",
-        description: "Link copied to clipboard!",
-      });
+      // Try to copy to clipboard
+      const copied = await copyToClipboard(response.shareUrl);
+      
+      if (copied) {
+        toast({
+          title: "Share link created",
+          description: "Link copied to clipboard!",
+        });
+      } else {
+        toast({
+          title: "Share link created",
+          description: `Link: ${response.shareUrl}`,
+        });
+      }
     } catch (error: any) {
       console.error("Failed to create share link:", error);
       
