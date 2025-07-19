@@ -108,13 +108,20 @@ export namespace annotation {
          * Adds a chat message to an annotation.
          */
         public async addChatMessage(params: RequestType<typeof api_annotation_add_chat_message_addChatMessage>): Promise<ResponseType<typeof api_annotation_add_chat_message_addChatMessage>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
                 message: params.message,
             }
 
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {method: "POST", body: JSON.stringify(body)})
+            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {headers, method: "POST", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_add_chat_message_addChatMessage>
         }
 
@@ -122,35 +129,71 @@ export namespace annotation {
          * Creates a new annotation circle on an image.
          */
         public async createAnnotation(params: RequestType<typeof api_annotation_create_annotation_createAnnotation>): Promise<ResponseType<typeof api_annotation_create_annotation_createAnnotation>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                imageId: params.imageId,
+                radius:  params.radius,
+                x:       params.x,
+                y:       params.y,
+            }
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/annotations`, {method: "POST", body: JSON.stringify(params)})
+            const resp = await this.baseClient.callTypedAPI(`/annotations`, {headers, method: "POST", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_create_annotation_createAnnotation>
         }
 
         /**
          * Retrieves image data by ID.
          */
-        public async getImage(params: { id: number }): Promise<ResponseType<typeof api_annotation_get_image_getImage>> {
+        public async getImage(params: RequestType<typeof api_annotation_get_image_getImage>): Promise<ResponseType<typeof api_annotation_get_image_getImage>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.id)}`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.id)}`, {headers, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_get_image_getImage>
         }
 
         /**
          * Retrieves all annotations for an image.
          */
-        public async listAnnotations(params: { imageId: number }): Promise<ResponseType<typeof api_annotation_list_annotations_listAnnotations>> {
+        public async listAnnotations(params: RequestType<typeof api_annotation_list_annotations_listAnnotations>): Promise<ResponseType<typeof api_annotation_list_annotations_listAnnotations>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.imageId)}/annotations`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.imageId)}/annotations`, {headers, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_list_annotations_listAnnotations>
         }
 
         /**
          * Retrieves all chat messages for an annotation.
          */
-        public async listChatMessages(params: { annotationId: number }): Promise<ResponseType<typeof api_annotation_list_chat_messages_listChatMessages>> {
+        public async listChatMessages(params: RequestType<typeof api_annotation_list_chat_messages_listChatMessages>): Promise<ResponseType<typeof api_annotation_list_chat_messages_listChatMessages>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {headers, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_list_chat_messages_listChatMessages>
         }
 
@@ -158,8 +201,21 @@ export namespace annotation {
          * Creates a new image record and returns a signed upload URL.
          */
         public async uploadImage(params: RequestType<typeof api_annotation_upload_image_uploadImage>): Promise<ResponseType<typeof api_annotation_upload_image_uploadImage>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
+            // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
+            const body: Record<string, any> = {
+                contentType: params.contentType,
+                filename:    params.filename,
+            }
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/images/upload`, {method: "POST", body: JSON.stringify(params)})
+            const resp = await this.baseClient.callTypedAPI(`/images/upload`, {headers, method: "POST", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_upload_image_uploadImage>
         }
     }

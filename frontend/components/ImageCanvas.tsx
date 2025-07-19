@@ -29,13 +29,22 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
     try {
       const response = await backend.annotation.getImage({ id: imageId });
       setImageUrl(response.imageUrl);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load image:", error);
-      toast({
-        title: "Failed to load image",
-        description: "Could not load the image. Please try again.",
-        variant: "destructive",
-      });
+      
+      if (error?.code === "resource_exhausted") {
+        toast({
+          title: "Rate limit exceeded",
+          description: error.message || "Too many requests. Please wait before trying again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to load image",
+          description: "Could not load the image. Please try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -43,13 +52,22 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
     try {
       const response = await backend.annotation.listAnnotations({ imageId });
       setAnnotations(response.annotations);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load annotations:", error);
-      toast({
-        title: "Failed to load annotations",
-        description: "Could not load existing annotations.",
-        variant: "destructive",
-      });
+      
+      if (error?.code === "resource_exhausted") {
+        toast({
+          title: "Rate limit exceeded",
+          description: error.message || "Too many requests. Please wait before trying again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to load annotations",
+          description: "Could not load existing annotations.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -181,13 +199,22 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
           title: "Annotation created",
           description: "Click on the circle to start a chat thread.",
         });
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to create annotation:", error);
-        toast({
-          title: "Failed to create annotation",
-          description: "Could not create the annotation. Please try again.",
-          variant: "destructive",
-        });
+        
+        if (error?.code === "resource_exhausted") {
+          toast({
+            title: "Rate limit exceeded",
+            description: error.message || "Too many annotations. Please wait before creating another.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Failed to create annotation",
+            description: "Could not create the annotation. Please try again.",
+            variant: "destructive",
+          });
+        }
       }
     }
 

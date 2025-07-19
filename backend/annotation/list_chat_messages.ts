@@ -1,8 +1,12 @@
-import { api } from "encore.dev/api";
+import { api, APIError, Header } from "encore.dev/api";
 import { annotationDB } from "./db";
+import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface ListChatMessagesParams {
   annotationId: number;
+  xForwardedFor?: Header<"X-Forwarded-For">;
+  xRealIP?: Header<"X-Real-IP">;
+  cfConnectingIP?: Header<"CF-Connecting-IP">;
 }
 
 export interface ListChatMessagesResponse {
@@ -20,6 +24,19 @@ export interface ChatMessage {
 export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResponse>(
   { expose: true, method: "GET", path: "/annotations/:annotationId/messages" },
   async (params) => {
+    // Rate limiting
+    const clientIP = getClientIP({
+      'x-forwarded-for': params.xForwardedFor,
+      'x-real-ip': params.xRealIP,
+      'cf-connecting-ip': params.cfConnectingIP,
+    });
+    
+    const rateLimitResult = generalLimiter.checkLimit(clientIP);
+    if (!rateLimitResult.allowed) {
+      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+    }
+
     const messages: ChatMessage[] = [];
     
     for await (const row of annotationDB.query<{

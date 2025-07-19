@@ -63,13 +63,22 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
         title: "Image uploaded successfully",
         description: "You can now start annotating your image.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Upload error:", error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload image. Please try again.",
-        variant: "destructive",
-      });
+      
+      if (error?.code === "resource_exhausted") {
+        toast({
+          title: "Upload rate limit exceeded",
+          description: error.message || "Too many uploads. Please wait before uploading another image.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Upload failed",
+          description: "Failed to upload image. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsUploading(false);
     }

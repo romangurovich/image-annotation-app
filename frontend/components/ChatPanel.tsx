@@ -22,19 +22,38 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
     try {
       const response = await backend.annotation.listChatMessages({ annotationId });
       setMessages(response.messages);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to load messages:", error);
-      toast({
-        title: "Failed to load messages",
-        description: "Could not load chat messages.",
-        variant: "destructive",
-      });
+      
+      if (error?.code === "resource_exhausted") {
+        toast({
+          title: "Rate limit exceeded",
+          description: error.message || "Too many requests. Please wait before trying again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to load messages",
+          description: "Could not load chat messages.",
+          variant: "destructive",
+        });
+      }
     }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newMessage.trim() || isLoading) return;
+
+    // Validate message length on frontend
+    if (newMessage.length > 1000) {
+      toast({
+        title: "Message too long",
+        description: "Messages must be 1000 characters or less.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setIsLoading(true);
     try {
@@ -45,13 +64,28 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
 
       setMessages([...messages, message]);
       setNewMessage("");
-    } catch (error) {
+    } catch (error: any) {
       console.error("Failed to send message:", error);
-      toast({
-        title: "Failed to send message",
-        description: "Could not send the message. Please try again.",
-        variant: "destructive",
-      });
+      
+      if (error?.code === "resource_exhausted") {
+        toast({
+          title: "Rate limit exceeded",
+          description: error.message || "Too many messages. Please wait before sending another.",
+          variant: "destructive",
+        });
+      } else if (error?.code === "invalid_argument") {
+        toast({
+          title: "Invalid message",
+          description: error.message || "Please check your message and try again.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to send message",
+          description: "Could not send the message. Please try again.",
+          variant: "destructive",
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -82,8 +116,9 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
             type="text"
             value={newMessage}
             onChange={(e) => setNewMessage(e.target.value)}
-            placeholder="Type a message..."
+            placeholder="Type a message... (max 1000 chars)"
             disabled={isLoading}
+            maxLength={1000}
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50"
           />
           <button
@@ -93,6 +128,9 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
           >
             <Send className="h-4 w-4" />
           </button>
+        </div>
+        <div className="text-xs text-gray-500 mt-1">
+          {newMessage.length}/1000 characters
         </div>
       </form>
     </div>

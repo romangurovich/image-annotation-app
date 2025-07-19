@@ -1,11 +1,15 @@
-import { api } from "encore.dev/api";
+import { api, APIError, Header } from "encore.dev/api";
 import { annotationDB } from "./db";
+import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface CreateAnnotationRequest {
   imageId: number;
   x: number;
   y: number;
   radius: number;
+  xForwardedFor?: Header<"X-Forwarded-For">;
+  xRealIP?: Header<"X-Real-IP">;
+  cfConnectingIP?: Header<"CF-Connecting-IP">;
 }
 
 export interface Annotation {
@@ -21,6 +25,19 @@ export interface Annotation {
 export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
   { expose: true, method: "POST", path: "/annotations" },
   async (req) => {
+    // Rate limiting
+    const clientIP = getClientIP({
+      'x-forwarded-for': req.xForwardedFor,
+      'x-real-ip': req.xRealIP,
+      'cf-connecting-ip': req.cfConnectingIP,
+    });
+    
+    const rateLimitResult = generalLimiter.checkLimit(clientIP);
+    if (!rateLimitResult.allowed) {
+      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
+      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+    }
+
     const result = await annotationDB.queryRow<{
       id: number;
       created_at: Date;
