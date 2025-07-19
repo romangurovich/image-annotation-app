@@ -7,7 +7,7 @@ import { ChatPanel } from "./ChatPanel";
 import type { Annotation } from "~backend/annotation/list_annotations";
 
 interface AnnotationScreenProps {
-  imageId: number;
+  imageId: string;
   shareToken?: string | null;
 }
 

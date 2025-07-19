@@ -3,7 +3,7 @@ import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface CreateShareLinkRequest {
-  imageId: number;
+  imageId: string;
   xForwardedFor?: Header<"X-Forwarded-For">;
   xRealIP?: Header<"X-Real-IP">;
   cfConnectingIP?: Header<"CF-Connecting-IP">;

@@ -4,7 +4,7 @@ import { imagesBucket } from "./storage";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface GetImageParams {
-  id: number;
+  id: string;
   shareToken?: Query<string>;
   xForwardedFor?: Header<"X-Forwarded-For">;
   xRealIP?: Header<"X-Real-IP">;
@@ -12,7 +12,7 @@ export interface GetImageParams {
 }
 
 export interface ImageData {
-  id: number;
+  id: string;
   filename: string;
   originalFilename: string;
   imageUrl: string;
@@ -38,7 +38,7 @@ export const getImage = api<GetImageParams, ImageData>(
     }
 
     const image = await annotationDB.queryRow<{
-      id: number;
+      id: string;
       filename: string;
       original_filename: string;
       user_ip: string;
@@ -58,7 +58,7 @@ export const getImage = api<GetImageParams, ImageData>(
 
     // If share token is provided, verify it
     if (params.shareToken) {
-      const shareRecord = await annotationDB.queryRow<{ id: number }>`
+      const shareRecord = await annotationDB.queryRow<{ id: string }>`
         SELECT id FROM image_shares
         WHERE image_id = ${params.id} AND share_token = ${params.shareToken}
       `;

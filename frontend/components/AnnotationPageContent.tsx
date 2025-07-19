@@ -15,11 +15,9 @@ export function AnnotationPageContent() {
     }
   }, []);
 
-  const parsedImageId = imageId ? parseInt(imageId) : null;
-
-  if (!parsedImageId || isNaN(parsedImageId)) {
+  if (!imageId) {
     return <Navigate to="/" replace />;
   }
 
-  return <AnnotationScreen imageId={parsedImageId} shareToken={shareToken} />;
+  return <AnnotationScreen imageId={imageId} shareToken={shareToken} />;
 }

@@ -14,7 +14,7 @@ export interface ListUserImagesResponse {
 }
 
 export interface UserImage {
-  id: number;
+  id: string;
   filename: string;
   originalFilename: string;
   imageUrl: string;
@@ -43,7 +43,7 @@ export const listUserImages = api<ListUserImagesParams, ListUserImagesResponse>(
     const images: UserImage[] = [];
     
     for await (const row of annotationDB.query<{
-      id: number;
+      id: string;
       filename: string;
       original_filename: string;
       thumbnail_filename: string | null;

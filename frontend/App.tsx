@@ -29,7 +29,7 @@ export default function App() {
 }
 
 function HomePage() {
-  const [currentImageId, setCurrentImageId] = useState<number | null>(null);
+  const [currentImageId, setCurrentImageId] = useState<string | null>(null);
 
   if (currentImageId) {
     return <Navigate to={`/annotate/${currentImageId}`} replace />;

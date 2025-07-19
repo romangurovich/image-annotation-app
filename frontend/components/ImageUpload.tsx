@@ -4,7 +4,7 @@ import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 
 interface ImageUploadProps {
-  onImageUploaded: (imageId: number) => void;
+  onImageUploaded: (imageId: string) => void;
 }
 
 export function ImageUpload({ onImageUploaded }: ImageUploadProps) {

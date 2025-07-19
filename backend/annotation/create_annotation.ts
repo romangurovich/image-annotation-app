@@ -3,7 +3,7 @@ import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface CreateAnnotationRequest {
-  imageId: number;
+  imageId: string;
   x: number;
   y: number;
   radius: number;
@@ -14,8 +14,8 @@ export interface CreateAnnotationRequest {
 }
 
 export interface Annotation {
-  id: number;
-  imageId: number;
+  id: string;
+  imageId: string;
   x: number;
   y: number;
   radius: number;
@@ -54,7 +54,7 @@ export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
 
     // If share token is provided, verify it
     if (req.shareToken) {
-      const shareRecord = await annotationDB.queryRow<{ id: number }>`
+      const shareRecord = await annotationDB.queryRow<{ id: string }>`
         SELECT id FROM image_shares
         WHERE image_id = ${req.imageId} AND share_token = ${req.shareToken}
       `;
@@ -69,7 +69,7 @@ export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
     }
 
     const result = await annotationDB.queryRow<{
-      id: number;
+      id: string;
       created_at: Date;
     }>`
       INSERT INTO annotations (image_id, x, y, radius)

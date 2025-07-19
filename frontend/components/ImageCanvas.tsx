@@ -6,7 +6,7 @@ import { ChatPanel } from "./ChatPanel";
 import type { Annotation } from "~backend/annotation/list_annotations";
 
 interface ImageCanvasProps {
-  imageId: number;
+  imageId: string;
   shareToken?: string | null;
 }
 

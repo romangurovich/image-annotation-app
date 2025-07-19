@@ -3,7 +3,7 @@ import { annotationDB } from "./db";
 import { chatLimiter, getClientIP } from "./rate_limiter";
 
 export interface AddChatMessageRequest {
-  annotationId: number;
+  annotationId: string;
   message: string;
   shareToken?: Query<string>;
   xForwardedFor?: Header<"X-Forwarded-For">;
@@ -12,8 +12,8 @@ export interface AddChatMessageRequest {
 }
 
 export interface ChatMessage {
-  id: number;
-  annotationId: number;
+  id: string;
+  annotationId: string;
   message: string;
   userIP: string;
   createdAt: Date;
@@ -47,7 +47,7 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
 
     // Check if user has access to this annotation's image
     const annotationData = await annotationDB.queryRow<{
-      image_id: number;
+      image_id: string;
       user_ip: string;
     }>`
       SELECT a.image_id, i.user_ip
@@ -64,7 +64,7 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
 
     // If share token is provided, verify it
     if (req.shareToken) {
-      const shareRecord = await annotationDB.queryRow<{ id: number }>`
+      const shareRecord = await annotationDB.queryRow<{ id: string }>`
         SELECT id FROM image_shares
         WHERE image_id = ${annotationData.image_id} AND share_token = ${req.shareToken}
       `;
@@ -79,7 +79,7 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
     }
 
     const result = await annotationDB.queryRow<{
-      id: number;
+      id: string;
       created_at: Date;
     }>`
       INSERT INTO chat_messages (annotation_id, message, user_ip)

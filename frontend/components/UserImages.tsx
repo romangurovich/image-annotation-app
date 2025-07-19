@@ -40,12 +40,11 @@ export function UserImages() {
     }
   };
 
-  const handleViewImage = (imageId: number) => {
-		console.log("image id is  ", imageId)
+  const handleViewImage = (imageId: string) => {
     navigate(`/image/${imageId}`);
   };
 
-  const handleAnnotateImage = (imageId: number) => {
+  const handleAnnotateImage = (imageId: string) => {
     navigate(`/annotate/${imageId}`);
   };
 

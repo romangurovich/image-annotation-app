@@ -12,7 +12,7 @@ export interface UploadImageRequest {
 }
 
 export interface UploadImageResponse {
-  imageId: number;
+  imageId: string;
   uploadUrl: string;
   imageUrl: string;
   thumbnailUploadUrl: string;
@@ -43,7 +43,7 @@ export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
     const thumbnailFilename = `thumb_${timestamp}-${randomId}.${extension}`;
     
     // Save to database with user IP and thumbnail filename
-    const result = await annotationDB.queryRow<{ id: number }>`
+    const result = await annotationDB.queryRow<{ id: string }>`
       INSERT INTO images (filename, original_filename, thumbnail_filename, user_ip)
       VALUES (${uniqueFilename}, ${req.filename}, ${thumbnailFilename}, ${clientIP})
       RETURNING id

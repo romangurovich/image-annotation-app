@@ -3,7 +3,7 @@ import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface ListAnnotationsParams {
-  imageId: number;
+  imageId: string;
   shareToken?: Query<string>;
   xForwardedFor?: Header<"X-Forwarded-For">;
   xRealIP?: Header<"X-Real-IP">;
@@ -15,8 +15,8 @@ export interface ListAnnotationsResponse {
 }
 
 export interface Annotation {
-  id: number;
-  imageId: number;
+  id: string;
+  imageId: string;
   x: number;
   y: number;
   radius: number;
@@ -55,7 +55,7 @@ export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsRespons
 
     // If share token is provided, verify it
     if (params.shareToken) {
-      const shareRecord = await annotationDB.queryRow<{ id: number }>`
+      const shareRecord = await annotationDB.queryRow<{ id: string }>`
         SELECT id FROM image_shares
         WHERE image_id = ${params.imageId} AND share_token = ${params.shareToken}
       `;
@@ -72,8 +72,8 @@ export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsRespons
     const annotations: Annotation[] = [];
     
     for await (const row of annotationDB.query<{
-      id: number;
-      image_id: number;
+      id: string;
+      image_id: string;
       x: number;
       y: number;
       radius: number;

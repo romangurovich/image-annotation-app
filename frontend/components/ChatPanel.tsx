@@ -5,7 +5,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { ChatMessage } from "~backend/annotation/list_chat_messages";
 
 interface ChatPanelProps {
-  annotationId: number;
+  annotationId: string;
   shareToken?: string | null;
 }
 

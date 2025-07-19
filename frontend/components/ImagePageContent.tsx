@@ -15,9 +15,7 @@ export function ImagePageContent() {
     }
   }, []);
 
-  const parsedImageId = imageId ? parseInt(imageId) : null;
-
-  if (!parsedImageId || isNaN(parsedImageId)) {
+  if (!imageId) {
     return <Navigate to="/" replace />;
   }
 
@@ -37,7 +35,7 @@ export function ImagePageContent() {
           My Images
         </a>
       </div>
-      <ImageCanvas imageId={parsedImageId} shareToken={shareToken} />
+      <ImageCanvas imageId={imageId} shareToken={shareToken} />
     </div>
   );
 }

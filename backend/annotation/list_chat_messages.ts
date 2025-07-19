@@ -3,7 +3,7 @@ import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface ListChatMessagesParams {
-  annotationId: number;
+  annotationId: string;
   shareToken?: Query<string>;
   xForwardedFor?: Header<"X-Forwarded-For">;
   xRealIP?: Header<"X-Real-IP">;
@@ -15,8 +15,8 @@ export interface ListChatMessagesResponse {
 }
 
 export interface ChatMessage {
-  id: number;
-  annotationId: number;
+  id: string;
+  annotationId: string;
   message: string;
   userIP: string;
   createdAt: Date;
@@ -41,7 +41,7 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
 
     // Check if user has access to this annotation's image
     const annotationData = await annotationDB.queryRow<{
-      image_id: number;
+      image_id: string;
       user_ip: string;
     }>`
       SELECT a.image_id, i.user_ip
@@ -58,7 +58,7 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
 
     // If share token is provided, verify it
     if (params.shareToken) {
-      const shareRecord = await annotationDB.queryRow<{ id: number }>`
+      const shareRecord = await annotationDB.queryRow<{ id: string }>`
         SELECT id FROM image_shares
         WHERE image_id = ${annotationData.image_id} AND share_token = ${params.shareToken}
       `;
@@ -75,8 +75,8 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
     const messages: ChatMessage[] = [];
     
     for await (const row of annotationDB.query<{
-      id: number;
-      annotation_id: number;
+      id: string;
+      annotation_id: string;
       message: string;
       user_ip: string;
       created_at: Date;
