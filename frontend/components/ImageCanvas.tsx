@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle, X, Share2, Copy } from "lucide-react";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ChatPanel } from "./ChatPanel";
@@ -7,9 +7,10 @@ import type { Annotation } from "~backend/annotation/list_annotations";
 
 interface ImageCanvasProps {
   imageId: number;
+  shareToken?: string | null;
 }
 
-export function ImageCanvas({ imageId }: ImageCanvasProps) {
+export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
@@ -18,21 +19,35 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
   const [currentRadius, setCurrentRadius] = useState<number>(0);
+  const [canEdit, setCanEdit] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string>("");
   const { toast } = useToast();
 
   useEffect(() => {
     loadImage();
     loadAnnotations();
-  }, [imageId]);
+  }, [imageId, shareToken]);
 
   const loadImage = async () => {
     try {
-      const response = await backend.annotation.getImage({ id: imageId });
+      const params: any = { id: imageId };
+      if (shareToken) {
+        params.shareToken = shareToken;
+      }
+      
+      const response = await backend.annotation.getImage(params);
       setImageUrl(response.imageUrl);
+      setCanEdit(response.canEdit);
     } catch (error: any) {
       console.error("Failed to load image:", error);
       
-      if (error?.code === "resource_exhausted") {
+      if (error?.code === "permission_denied") {
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to view this image.",
+          variant: "destructive",
+        });
+      } else if (error?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
           description: error.message || "Too many requests. Please wait before trying again.",
@@ -50,12 +65,20 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
 
   const loadAnnotations = async () => {
     try {
-      const response = await backend.annotation.listAnnotations({ imageId });
+      const params: any = { imageId };
+      if (shareToken) {
+        params.shareToken = shareToken;
+      }
+      
+      const response = await backend.annotation.listAnnotations(params);
       setAnnotations(response.annotations);
     } catch (error: any) {
       console.error("Failed to load annotations:", error);
       
-      if (error?.code === "resource_exhausted") {
+      if (error?.code === "permission_denied") {
+        // Don't show error for annotations if user doesn't have access
+        return;
+      } else if (error?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
           description: error.message || "Too many requests. Please wait before trying again.",
@@ -65,6 +88,36 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
         toast({
           title: "Failed to load annotations",
           description: "Could not load existing annotations.",
+          variant: "destructive",
+        });
+      }
+    }
+  };
+
+  const createShareLink = async () => {
+    try {
+      const response = await backend.annotation.createShareLink({ imageId });
+      setShareUrl(response.shareUrl);
+      
+      // Copy to clipboard
+      await navigator.clipboard.writeText(response.shareUrl);
+      toast({
+        title: "Share link created",
+        description: "Link copied to clipboard!",
+      });
+    } catch (error: any) {
+      console.error("Failed to create share link:", error);
+      
+      if (error?.code === "permission_denied") {
+        toast({
+          title: "Permission denied",
+          description: "Only the image owner can create share links.",
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Failed to create share link",
+          description: "Could not create share link. Please try again.",
           variant: "destructive",
         });
       }
@@ -160,14 +213,16 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
       setSelectedAnnotation(clickedAnnotation);
     } else {
       setSelectedAnnotation(null);
-      setIsDrawing(true);
-      setStartPoint(coords);
-      setCurrentRadius(0);
+      if (canEdit) {
+        setIsDrawing(true);
+        setStartPoint(coords);
+        setCurrentRadius(0);
+      }
     }
   };
 
   const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPoint) return;
+    if (!isDrawing || !startPoint || !canEdit) return;
 
     const coords = getCanvasCoordinates(event);
     const radius = Math.sqrt(
@@ -178,7 +233,7 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
   };
 
   const handleMouseUp = async (event: React.MouseEvent<HTMLCanvasElement>) => {
-    if (!isDrawing || !startPoint) return;
+    if (!isDrawing || !startPoint || !canEdit) return;
 
     const coords = getCanvasCoordinates(event);
     const radius = Math.sqrt(
@@ -187,12 +242,17 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
 
     if (radius > 10) { // Minimum radius
       try {
-        const newAnnotation = await backend.annotation.createAnnotation({
+        const params: any = {
           imageId,
           x: startPoint.x,
           y: startPoint.y,
           radius,
-        });
+        };
+        if (shareToken) {
+          params.shareToken = shareToken;
+        }
+        
+        const newAnnotation = await backend.annotation.createAnnotation(params);
 
         setAnnotations([...annotations, newAnnotation]);
         toast({
@@ -202,7 +262,13 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
       } catch (error: any) {
         console.error("Failed to create annotation:", error);
         
-        if (error?.code === "resource_exhausted") {
+        if (error?.code === "permission_denied") {
+          toast({
+            title: "Permission denied",
+            description: "You don't have permission to create annotations.",
+            variant: "destructive",
+          });
+        } else if (error?.code === "resource_exhausted") {
           toast({
             title: "Rate limit exceeded",
             description: error.message || "Too many annotations. Please wait before creating another.",
@@ -235,12 +301,33 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
     <div className="flex gap-6">
       <div className="flex-1">
         <div className="bg-white rounded-lg shadow-lg p-4">
-          <div className="mb-4 flex items-center gap-2">
-            <MessageCircle className="h-5 w-5 text-blue-600" />
-            <span className="text-sm text-gray-600">
-              Click and drag to create annotation circles. Click on circles to open chat.
-            </span>
+          <div className="mb-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-blue-600" />
+              <span className="text-sm text-gray-600">
+                {canEdit 
+                  ? "Click and drag to create annotation circles. Click on circles to open chat."
+                  : "Click on circles to view chat messages."
+                }
+              </span>
+            </div>
+            {canEdit && !shareToken && (
+              <button
+                onClick={createShareLink}
+                className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
+              >
+                <Share2 className="h-4 w-4" />
+                Share
+              </button>
+            )}
           </div>
+          {shareToken && (
+            <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+              <p className="text-sm text-blue-800">
+                You're viewing a shared image. You can comment on annotations but cannot create new ones.
+              </p>
+            </div>
+          )}
           <div className="border rounded-lg overflow-hidden">
             <canvas
               ref={canvasRef}
@@ -248,7 +335,7 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseLeave}
-              className="max-w-full h-auto cursor-crosshair"
+              className={`max-w-full h-auto ${canEdit ? 'cursor-crosshair' : 'cursor-pointer'}`}
               style={{ display: "block" }}
             />
           </div>
@@ -269,7 +356,7 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <ChatPanel annotationId={selectedAnnotation.id} />
+            <ChatPanel annotationId={selectedAnnotation.id} shareToken={shareToken} />
           </div>
         </div>
       )}

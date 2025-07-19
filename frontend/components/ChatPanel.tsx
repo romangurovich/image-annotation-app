@@ -6,9 +6,10 @@ import type { ChatMessage } from "~backend/annotation/list_chat_messages";
 
 interface ChatPanelProps {
   annotationId: number;
+  shareToken?: string | null;
 }
 
-export function ChatPanel({ annotationId }: ChatPanelProps) {
+export function ChatPanel({ annotationId, shareToken }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -16,16 +17,27 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
 
   useEffect(() => {
     loadMessages();
-  }, [annotationId]);
+  }, [annotationId, shareToken]);
 
   const loadMessages = async () => {
     try {
-      const response = await backend.annotation.listChatMessages({ annotationId });
+      const params: any = { annotationId };
+      if (shareToken) {
+        params.shareToken = shareToken;
+      }
+      
+      const response = await backend.annotation.listChatMessages(params);
       setMessages(response.messages);
     } catch (error: any) {
       console.error("Failed to load messages:", error);
       
-      if (error?.code === "resource_exhausted") {
+      if (error?.code === "permission_denied") {
+        toast({
+          title: "Access denied",
+          description: "You don't have permission to view these messages.",
+          variant: "destructive",
+        });
+      } else if (error?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
           description: error.message || "Too many requests. Please wait before trying again.",
@@ -57,17 +69,28 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
 
     setIsLoading(true);
     try {
-      const message = await backend.annotation.addChatMessage({
+      const params: any = {
         annotationId,
         message: newMessage.trim(),
-      });
+      };
+      if (shareToken) {
+        params.shareToken = shareToken;
+      }
+      
+      const message = await backend.annotation.addChatMessage(params);
 
       setMessages([...messages, message]);
       setNewMessage("");
     } catch (error: any) {
       console.error("Failed to send message:", error);
       
-      if (error?.code === "resource_exhausted") {
+      if (error?.code === "permission_denied") {
+        toast({
+          title: "Permission denied",
+          description: "You don't have permission to send messages.",
+          variant: "destructive",
+        });
+      } else if (error?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
           description: error.message || "Too many messages. Please wait before sending another.",
@@ -91,6 +114,14 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
     }
   };
 
+  const formatUserIP = (userIP: string) => {
+    // Show only last 4 characters of IP for privacy
+    if (userIP.length > 4) {
+      return `...${userIP.slice(-4)}`;
+    }
+    return userIP;
+  };
+
   return (
     <div className="flex flex-col h-96">
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -102,9 +133,14 @@ export function ChatPanel({ annotationId }: ChatPanelProps) {
           messages.map((message) => (
             <div key={message.id} className="bg-gray-50 rounded-lg p-3">
               <p className="text-sm text-gray-900">{message.message}</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {new Date(message.createdAt).toLocaleString()}
-              </p>
+              <div className="flex justify-between items-center mt-1">
+                <p className="text-xs text-gray-500">
+                  {new Date(message.createdAt).toLocaleString()}
+                </p>
+                <p className="text-xs text-gray-400">
+                  {formatUserIP(message.userIP)}
+                </p>
+              </div>
             </div>
           ))
         )}

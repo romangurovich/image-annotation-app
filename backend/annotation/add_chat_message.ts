@@ -1,10 +1,11 @@
-import { api, APIError, Header } from "encore.dev/api";
+import { api, APIError, Header, Query } from "encore.dev/api";
 import { annotationDB } from "./db";
 import { chatLimiter, getClientIP } from "./rate_limiter";
 
 export interface AddChatMessageRequest {
   annotationId: number;
   message: string;
+  shareToken?: Query<string>;
   xForwardedFor?: Header<"X-Forwarded-For">;
   xRealIP?: Header<"X-Real-IP">;
   cfConnectingIP?: Header<"CF-Connecting-IP">;
@@ -14,6 +15,7 @@ export interface ChatMessage {
   id: number;
   annotationId: number;
   message: string;
+  userIP: string;
   createdAt: Date;
 }
 
@@ -43,12 +45,45 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
       throw APIError.invalidArgument("Message cannot be empty.");
     }
 
+    // Check if user has access to this annotation's image
+    const annotationData = await annotationDB.queryRow<{
+      image_id: number;
+      user_ip: string;
+    }>`
+      SELECT a.image_id, i.user_ip
+      FROM annotations a
+      JOIN images i ON a.image_id = i.id
+      WHERE a.id = ${req.annotationId}
+    `;
+    
+    if (!annotationData) {
+      throw APIError.notFound("Annotation not found");
+    }
+
+    let hasAccess = annotationData.user_ip === clientIP;
+
+    // If share token is provided, verify it
+    if (req.shareToken) {
+      const shareRecord = await annotationDB.queryRow<{ id: number }>`
+        SELECT id FROM image_shares
+        WHERE image_id = ${annotationData.image_id} AND share_token = ${req.shareToken}
+      `;
+      
+      if (shareRecord) {
+        hasAccess = true;
+      }
+    }
+
+    if (!hasAccess) {
+      throw APIError.permissionDenied("Access denied");
+    }
+
     const result = await annotationDB.queryRow<{
       id: number;
       created_at: Date;
     }>`
-      INSERT INTO chat_messages (annotation_id, message)
-      VALUES (${req.annotationId}, ${req.message})
+      INSERT INTO chat_messages (annotation_id, message, user_ip)
+      VALUES (${req.annotationId}, ${req.message}, ${clientIP})
       RETURNING id, created_at
     `;
     
@@ -60,6 +95,7 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
       id: result.id,
       annotationId: req.annotationId,
       message: req.message,
+      userIP: clientIP,
       createdAt: result.created_at,
     };
   }

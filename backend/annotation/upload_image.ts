@@ -39,10 +39,10 @@ export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
     const extension = req.filename.split('.').pop() || 'jpg';
     const uniqueFilename = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
     
-    // Save to database first
+    // Save to database with user IP
     const result = await annotationDB.queryRow<{ id: number }>`
-      INSERT INTO images (filename, original_filename)
-      VALUES (${uniqueFilename}, ${req.filename})
+      INSERT INTO images (filename, original_filename, user_ip)
+      VALUES (${uniqueFilename}, ${req.filename}, ${clientIP})
       RETURNING id
     `;
     

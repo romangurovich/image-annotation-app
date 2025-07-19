@@ -84,9 +84,11 @@ export interface ClientOptions {
  */
 import { addChatMessage as api_annotation_add_chat_message_addChatMessage } from "~backend/annotation/add_chat_message";
 import { createAnnotation as api_annotation_create_annotation_createAnnotation } from "~backend/annotation/create_annotation";
+import { createShareLink as api_annotation_create_share_link_createShareLink } from "~backend/annotation/create_share_link";
 import { getImage as api_annotation_get_image_getImage } from "~backend/annotation/get_image";
 import { listAnnotations as api_annotation_list_annotations_listAnnotations } from "~backend/annotation/list_annotations";
 import { listChatMessages as api_annotation_list_chat_messages_listChatMessages } from "~backend/annotation/list_chat_messages";
+import { listUserImages as api_annotation_list_user_images_listUserImages } from "~backend/annotation/list_user_images";
 import { uploadImage as api_annotation_upload_image_uploadImage } from "~backend/annotation/upload_image";
 
 export namespace annotation {
@@ -98,9 +100,11 @@ export namespace annotation {
             this.baseClient = baseClient
             this.addChatMessage = this.addChatMessage.bind(this)
             this.createAnnotation = this.createAnnotation.bind(this)
+            this.createShareLink = this.createShareLink.bind(this)
             this.getImage = this.getImage.bind(this)
             this.listAnnotations = this.listAnnotations.bind(this)
             this.listChatMessages = this.listChatMessages.bind(this)
+            this.listUserImages = this.listUserImages.bind(this)
             this.uploadImage = this.uploadImage.bind(this)
         }
 
@@ -115,13 +119,17 @@ export namespace annotation {
                 "x-real-ip":        params.xRealIP,
             })
 
+            const query = makeRecord<string, string | string[]>({
+                shareToken: params.shareToken,
+            })
+
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
                 message: params.message,
             }
 
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {headers, method: "POST", body: JSON.stringify(body)})
+            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {headers, query, method: "POST", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_add_chat_message_addChatMessage>
         }
 
@@ -136,6 +144,10 @@ export namespace annotation {
                 "x-real-ip":        params.xRealIP,
             })
 
+            const query = makeRecord<string, string | string[]>({
+                shareToken: params.shareToken,
+            })
+
             // Construct the body with only the fields which we want encoded within the body (excluding query string or header fields)
             const body: Record<string, any> = {
                 imageId: params.imageId,
@@ -145,8 +157,24 @@ export namespace annotation {
             }
 
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/annotations`, {headers, method: "POST", body: JSON.stringify(body)})
+            const resp = await this.baseClient.callTypedAPI(`/annotations`, {headers, query, method: "POST", body: JSON.stringify(body)})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_create_annotation_createAnnotation>
+        }
+
+        /**
+         * Creates a shareable link for an image.
+         */
+        public async createShareLink(params: RequestType<typeof api_annotation_create_share_link_createShareLink>): Promise<ResponseType<typeof api_annotation_create_share_link_createShareLink>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.imageId)}/share`, {headers, method: "POST", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_create_share_link_createShareLink>
         }
 
         /**
@@ -160,8 +188,12 @@ export namespace annotation {
                 "x-real-ip":        params.xRealIP,
             })
 
+            const query = makeRecord<string, string | string[]>({
+                shareToken: params.shareToken,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.id)}`, {headers, method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.id)}`, {headers, query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_get_image_getImage>
         }
 
@@ -176,8 +208,12 @@ export namespace annotation {
                 "x-real-ip":        params.xRealIP,
             })
 
+            const query = makeRecord<string, string | string[]>({
+                shareToken: params.shareToken,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.imageId)}/annotations`, {headers, method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/images/${encodeURIComponent(params.imageId)}/annotations`, {headers, query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_list_annotations_listAnnotations>
         }
 
@@ -192,13 +228,33 @@ export namespace annotation {
                 "x-real-ip":        params.xRealIP,
             })
 
+            const query = makeRecord<string, string | string[]>({
+                shareToken: params.shareToken,
+            })
+
             // Now make the actual call to the API
-            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {headers, method: "GET", body: undefined})
+            const resp = await this.baseClient.callTypedAPI(`/annotations/${encodeURIComponent(params.annotationId)}/messages`, {headers, query, method: "GET", body: undefined})
             return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_list_chat_messages_listChatMessages>
         }
 
         /**
-         * Creates a new image record and returns a signed upload URL.
+         * Retrieves all images uploaded by the current user.
+         */
+        public async listUserImages(params: RequestType<typeof api_annotation_list_user_images_listUserImages>): Promise<ResponseType<typeof api_annotation_list_user_images_listUserImages>> {
+            // Convert our params into the objects we need for the request
+            const headers = makeRecord<string, string>({
+                "cf-connecting-ip": params.cfConnectingIP,
+                "x-forwarded-for":  params.xForwardedFor,
+                "x-real-ip":        params.xRealIP,
+            })
+
+            // Now make the actual call to the API
+            const resp = await this.baseClient.callTypedAPI(`/user/images`, {headers, method: "GET", body: undefined})
+            return JSON.parse(await resp.text(), dateReviver) as ResponseType<typeof api_annotation_list_user_images_listUserImages>
+        }
+
+        /**
+         * Creates a new image record and returns signed upload URLs for both full image and thumbnail.
          */
         public async uploadImage(params: RequestType<typeof api_annotation_upload_image_uploadImage>): Promise<ResponseType<typeof api_annotation_upload_image_uploadImage>> {
             // Convert our params into the objects we need for the request
