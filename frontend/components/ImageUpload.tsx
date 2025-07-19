@@ -25,46 +25,52 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
       return;
     }
 
+    // Validate file size (10MB limit)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 10MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
 
     try {
-      // Convert file to base64
-      const reader = new FileReader();
-      reader.onload = async () => {
-        try {
-          const base64Data = reader.result as string;
-          const base64WithoutPrefix = base64Data.split(",")[1];
+      // Get signed upload URL from backend
+      const response = await backend.annotation.uploadImage({
+        filename: file.name,
+        contentType: file.type,
+      });
 
-          const response = await backend.annotation.uploadImage({
-            filename: file.name,
-            imageData: base64WithoutPrefix,
-          });
+      // Upload file directly to object storage using signed URL
+      const uploadResponse = await fetch(response.uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: {
+          "Content-Type": file.type,
+        },
+      });
 
-          onImageUploaded(response.imageId);
-          toast({
-            title: "Image uploaded successfully",
-            description: "You can now start annotating your image.",
-          });
-        } catch (error) {
-          console.error("Upload error:", error);
-          toast({
-            title: "Upload failed",
-            description: "Failed to upload image. Please try again.",
-            variant: "destructive",
-          });
-        } finally {
-          setIsUploading(false);
-        }
-      };
+      if (!uploadResponse.ok) {
+        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
 
-      reader.readAsDataURL(file);
-    } catch (error) {
-      console.error("File reading error:", error);
+      onImageUploaded(response.imageId);
       toast({
-        title: "File reading failed",
-        description: "Failed to read the selected file.",
+        title: "Image uploaded successfully",
+        description: "You can now start annotating your image.",
+      });
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload image. Please try again.",
         variant: "destructive",
       });
+    } finally {
       setIsUploading(false);
     }
   };
@@ -77,7 +83,7 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
           Upload an image
         </h3>
         <p className="text-gray-600 mb-4">
-          Select an image file to start annotating
+          Select an image file to start annotating (max 10MB)
         </p>
         <label className="cursor-pointer">
           <input
