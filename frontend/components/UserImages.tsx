@@ -81,6 +81,25 @@ export function UserImages() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {images.map((image) => (
           <div key={image.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div className="aspect-video bg-gray-100 overflow-hidden">
+              <img
+                src={image.imageUrl}
+                alt={image.originalFilename}
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.parentElement!.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center text-gray-400">
+                      <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+                      </svg>
+                    </div>
+                  `;
+                }}
+              />
+            </div>
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-2 truncate">
                 {image.originalFilename}

@@ -1,5 +1,6 @@
 import { api, APIError, Header } from "encore.dev/api";
 import { annotationDB } from "./db";
+import { imagesBucket } from "./storage";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
 export interface ListUserImagesParams {
@@ -16,6 +17,7 @@ export interface UserImage {
   id: number;
   filename: string;
   originalFilename: string;
+  imageUrl: string;
   createdAt: Date;
   annotationCount: number;
 }
@@ -58,10 +60,13 @@ export const listUserImages = api<ListUserImagesParams, ListUserImagesResponse>(
       GROUP BY i.id, i.filename, i.original_filename, i.created_at
       ORDER BY i.created_at DESC
     `) {
+      const imageUrl = imagesBucket.publicUrl(row.filename);
+      
       images.push({
         id: row.id,
         filename: row.filename,
         originalFilename: row.original_filename,
+        imageUrl,
         createdAt: row.created_at,
         annotationCount: Number(row.annotation_count),
       });
