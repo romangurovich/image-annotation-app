@@ -41,6 +41,7 @@ export function UserImages() {
   };
 
   const handleViewImage = (imageId: number) => {
+		console.log("image id is  ", imageId)
     navigate(`/image/${imageId}`);
   };
 
