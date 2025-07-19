@@ -15,9 +15,10 @@ export interface UploadImageResponse {
   imageId: number;
   uploadUrl: string;
   imageUrl: string;
+  thumbnailUploadUrl: string;
 }
 
-// Creates a new image record and returns a signed upload URL.
+// Creates a new image record and returns signed upload URLs for both full image and thumbnail.
 export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
   { expose: true, method: "POST", path: "/images/upload" },
   async (req) => {
@@ -34,15 +35,17 @@ export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
       throw APIError.resourceExhausted(`Upload rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
     }
 
-    // Generate unique filename
+    // Generate unique filenames
     const timestamp = Date.now();
     const extension = req.filename.split('.').pop() || 'jpg';
-    const uniqueFilename = `${timestamp}-${Math.random().toString(36).substring(7)}.${extension}`;
+    const randomId = Math.random().toString(36).substring(7);
+    const uniqueFilename = `${timestamp}-${randomId}.${extension}`;
+    const thumbnailFilename = `thumb_${timestamp}-${randomId}.${extension}`;
     
-    // Save to database with user IP
+    // Save to database with user IP and thumbnail filename
     const result = await annotationDB.queryRow<{ id: number }>`
-      INSERT INTO images (filename, original_filename, user_ip)
-      VALUES (${uniqueFilename}, ${req.filename}, ${clientIP})
+      INSERT INTO images (filename, original_filename, thumbnail_filename, user_ip)
+      VALUES (${uniqueFilename}, ${req.filename}, ${thumbnailFilename}, ${clientIP})
       RETURNING id
     `;
     
@@ -50,8 +53,12 @@ export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
       throw new Error("Failed to save image to database");
     }
     
-    // Generate signed upload URL
+    // Generate signed upload URLs for both full image and thumbnail
     const { url: uploadUrl } = await imagesBucket.signedUploadUrl(uniqueFilename, {
+      ttl: 3600, // 1 hour
+    });
+    
+    const { url: thumbnailUploadUrl } = await imagesBucket.signedUploadUrl(thumbnailFilename, {
       ttl: 3600, // 1 hour
     });
     
@@ -61,6 +68,7 @@ export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
       imageId: result.id,
       uploadUrl,
       imageUrl,
+      thumbnailUploadUrl,
     };
   }
 );

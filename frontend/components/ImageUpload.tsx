@@ -11,6 +11,53 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
+  const createThumbnail = (file: File): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Calculate thumbnail dimensions (max 400px width/height, maintain aspect ratio)
+        const maxSize = 400;
+        let { width, height } = img;
+        
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height;
+            height = maxSize;
+          }
+        }
+        
+        canvas.width = width;
+        canvas.height = height;
+        
+        // Draw and compress the image
+        ctx!.drawImage(img, 0, 0, width, height);
+        
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              resolve(blob);
+            } else {
+              reject(new Error('Failed to create thumbnail'));
+            }
+          },
+          'image/jpeg',
+          0.8 // 80% quality
+        );
+      };
+      
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = URL.createObjectURL(file);
+    });
+  };
+
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -39,23 +86,40 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
     setIsUploading(true);
 
     try {
-      // Get signed upload URL from backend
+      // Create thumbnail
+      const thumbnailBlob = await createThumbnail(file);
+
+      // Get signed upload URLs from backend
       const response = await backend.annotation.uploadImage({
         filename: file.name,
         contentType: file.type,
       });
 
-      // Upload file directly to object storage using signed URL
-      const uploadResponse = await fetch(response.uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: {
-          "Content-Type": file.type,
-        },
-      });
+      // Upload both full image and thumbnail in parallel
+      const [uploadResponse, thumbnailResponse] = await Promise.all([
+        fetch(response.uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: {
+            "Content-Type": file.type,
+          },
+        }),
+        fetch(response.thumbnailUploadUrl, {
+          method: "PUT",
+          body: thumbnailBlob,
+          headers: {
+            "Content-Type": "image/jpeg",
+          },
+        })
+      ]);
 
       if (!uploadResponse.ok) {
         throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+      }
+
+      if (!thumbnailResponse.ok) {
+        console.warn(`Thumbnail upload failed: ${thumbnailResponse.status} ${thumbnailResponse.statusText}`);
+        // Continue even if thumbnail upload fails
       }
 
       onImageUploaded(response.imageId);

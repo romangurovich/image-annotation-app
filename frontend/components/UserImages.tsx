@@ -44,6 +44,26 @@ export function UserImages() {
     navigate(`/image/${imageId}`);
   };
 
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>, image: UserImage) => {
+    const target = e.target as HTMLImageElement;
+    
+    // If thumbnail failed and we haven't tried the full image yet, try the full image
+    if (target.src === image.thumbnailUrl && image.imageUrl !== image.thumbnailUrl) {
+      target.src = image.imageUrl;
+      return;
+    }
+    
+    // If both failed or no thumbnail, show fallback
+    target.style.display = 'none';
+    target.parentElement!.innerHTML = `
+      <div class="w-full h-full flex items-center justify-center text-gray-400">
+        <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
+          <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
+        </svg>
+      </div>
+    `;
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center py-12">
@@ -83,21 +103,11 @@ export function UserImages() {
           <div key={image.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
             <div className="aspect-video bg-gray-100 overflow-hidden">
               <img
-                src={image.imageUrl}
+                src={image.thumbnailUrl || image.imageUrl}
                 alt={image.originalFilename}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  // Fallback if image fails to load
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = 'none';
-                  target.parentElement!.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center text-gray-400">
-                      <svg class="w-12 h-12" fill="currentColor" viewBox="0 0 20 20">
-                        <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd" />
-                      </svg>
-                    </div>
-                  `;
-                }}
+                className="w-full h-full object-cover transition-opacity duration-200"
+                loading="lazy"
+                onError={(e) => handleImageError(e, image)}
               />
             </div>
             <div className="p-4">

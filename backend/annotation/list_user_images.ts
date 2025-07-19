@@ -18,6 +18,7 @@ export interface UserImage {
   filename: string;
   originalFilename: string;
   imageUrl: string;
+  thumbnailUrl: string | null;
   createdAt: Date;
   annotationCount: number;
 }
@@ -45,28 +46,32 @@ export const listUserImages = api<ListUserImagesParams, ListUserImagesResponse>(
       id: number;
       filename: string;
       original_filename: string;
+      thumbnail_filename: string | null;
       created_at: Date;
       annotation_count: number;
     }>`
       SELECT 
         i.id, 
         i.filename, 
-        i.original_filename, 
+        i.original_filename,
+        i.thumbnail_filename,
         i.created_at,
         COUNT(a.id) as annotation_count
       FROM images i
       LEFT JOIN annotations a ON i.id = a.image_id
       WHERE i.user_ip = ${clientIP}
-      GROUP BY i.id, i.filename, i.original_filename, i.created_at
+      GROUP BY i.id, i.filename, i.original_filename, i.thumbnail_filename, i.created_at
       ORDER BY i.created_at DESC
     `) {
       const imageUrl = imagesBucket.publicUrl(row.filename);
+      const thumbnailUrl = row.thumbnail_filename ? imagesBucket.publicUrl(row.thumbnail_filename) : null;
       
       images.push({
         id: row.id,
         filename: row.filename,
         originalFilename: row.original_filename,
         imageUrl,
+        thumbnailUrl,
         createdAt: row.created_at,
         annotationCount: Number(row.annotation_count),
       });
