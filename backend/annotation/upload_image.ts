@@ -14,7 +14,7 @@ export interface UploadImageResponse {
 
 // Uploads an image and returns the image ID and URL.
 export const uploadImage = api<UploadImageRequest, UploadImageResponse>(
-  { expose: true, method: "POST", path: "/images" },
+  { expose: true, method: "POST", path: "/images/upload" },
   async (req) => {
     // Decode base64 image data
     const imageBuffer = Buffer.from(req.imageData, "base64");
