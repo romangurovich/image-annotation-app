@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { ImageUpload } from "./components/ImageUpload";
 import { ImageCanvas } from "./components/ImageCanvas";
 import { UserImages } from "./components/UserImages";
+import { AnnotationScreen } from "./components/AnnotationScreen";
 import { Toaster } from "@/components/ui/toaster";
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/image/:imageId" element={<ImagePage />} />
+            <Route path="/annotate/:imageId" element={<AnnotationPage />} />
             <Route path="/my-images" element={<UserImages />} />
           </Routes>
         </div>
@@ -30,7 +32,7 @@ function HomePage() {
   const [currentImageId, setCurrentImageId] = useState<number | null>(null);
 
   if (currentImageId) {
-    return <Navigate to={`/image/${currentImageId}`} replace />;
+    return <Navigate to={`/annotate/${currentImageId}`} replace />;
   }
 
   return (
@@ -89,4 +91,29 @@ function ImagePage() {
       <ImageCanvas imageId={imageId} shareToken={shareToken} />
     </div>
   );
+}
+
+function AnnotationPage() {
+  const [imageId, setImageId] = useState<number | null>(null);
+  const [shareToken, setShareToken] = useState<string | null>(null);
+
+  useEffect(() => {
+    const pathParts = window.location.pathname.split('/');
+    const id = parseInt(pathParts[pathParts.length - 1]);
+    if (!isNaN(id)) {
+      setImageId(id);
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('share');
+    if (token) {
+      setShareToken(token);
+    }
+  }, []);
+
+  if (!imageId) {
+    return <Navigate to="/" replace />;
+  }
+
+  return <AnnotationScreen imageId={imageId} shareToken={shareToken} />;
 }

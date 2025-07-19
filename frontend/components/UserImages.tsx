@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Eye, MessageCircle, Calendar } from "lucide-react";
+import { Eye, MessageCircle, Calendar, Edit } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
@@ -42,6 +42,10 @@ export function UserImages() {
 
   const handleViewImage = (imageId: number) => {
     navigate(`/image/${imageId}`);
+  };
+
+  const handleAnnotateImage = (imageId: number) => {
+    navigate(`/annotate/${imageId}`);
   };
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>, image: UserImage) => {
@@ -126,13 +130,22 @@ export function UserImages() {
                 </div>
               </div>
 
-              <button
-                onClick={() => handleViewImage(image.id)}
-                className="flex items-center justify-center gap-2 w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                <Eye className="h-4 w-4" />
-                View & Annotate
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleViewImage(image.id)}
+                  className="flex items-center justify-center gap-2 flex-1 px-3 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm"
+                >
+                  <Eye className="h-4 w-4" />
+                  View
+                </button>
+                <button
+                  onClick={() => handleAnnotateImage(image.id)}
+                  className="flex items-center justify-center gap-2 flex-1 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+                >
+                  <Edit className="h-4 w-4" />
+                  Annotate
+                </button>
+              </div>
             </div>
           </div>
         ))}
