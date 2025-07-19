@@ -11,11 +11,13 @@ interface ImageCanvasProps {
 
 export function ImageCanvas({ imageId }: ImageCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
   const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<{ x: number; y: number } | null>(null);
+  const [currentRadius, setCurrentRadius] = useState<number>(0);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -53,39 +55,63 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
 
   const drawCanvas = () => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || !imageRef.current) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    // Clear canvas
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw image
+    // Draw the original image
+    ctx.drawImage(imageRef.current, 0, 0);
+
+    // Draw existing annotations
+    annotations.forEach((annotation) => {
+      ctx.beginPath();
+      ctx.arc(annotation.x, annotation.y, annotation.radius, 0, 2 * Math.PI);
+      ctx.strokeStyle = selectedAnnotation?.id === annotation.id ? "#ef4444" : "#3b82f6";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = selectedAnnotation?.id === annotation.id ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)";
+      ctx.fill();
+    });
+
+    // Draw current drawing circle if in drawing mode
+    if (isDrawing && startPoint && currentRadius > 0) {
+      ctx.beginPath();
+      ctx.arc(startPoint.x, startPoint.y, currentRadius, 0, 2 * Math.PI);
+      ctx.strokeStyle = "#10b981";
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      ctx.fillStyle = "rgba(16, 185, 129, 0.1)";
+      ctx.fill();
+    }
+  };
+
+  const setupCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas || !imageUrl) return;
+
     const img = new Image();
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
-      ctx.drawImage(img, 0, 0);
-
-      // Draw annotations
-      annotations.forEach((annotation) => {
-        ctx.beginPath();
-        ctx.arc(annotation.x, annotation.y, annotation.radius, 0, 2 * Math.PI);
-        ctx.strokeStyle = selectedAnnotation?.id === annotation.id ? "#ef4444" : "#3b82f6";
-        ctx.lineWidth = 2;
-        ctx.stroke();
-        ctx.fillStyle = selectedAnnotation?.id === annotation.id ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)";
-        ctx.fill();
-      });
+      imageRef.current = img;
+      drawCanvas();
     };
     img.src = imageUrl;
   };
 
   useEffect(() => {
     if (imageUrl) {
-      drawCanvas();
+      setupCanvas();
     }
-  }, [imageUrl, annotations, selectedAnnotation]);
+  }, [imageUrl]);
+
+  useEffect(() => {
+    drawCanvas();
+  }, [annotations, selectedAnnotation, isDrawing, startPoint, currentRadius]);
 
   const getCanvasCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -118,7 +144,19 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
       setSelectedAnnotation(null);
       setIsDrawing(true);
       setStartPoint(coords);
+      setCurrentRadius(0);
     }
+  };
+
+  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!isDrawing || !startPoint) return;
+
+    const coords = getCanvasCoordinates(event);
+    const radius = Math.sqrt(
+      Math.pow(coords.x - startPoint.x, 2) + Math.pow(coords.y - startPoint.y, 2)
+    );
+
+    setCurrentRadius(radius);
   };
 
   const handleMouseUp = async (event: React.MouseEvent<HTMLCanvasElement>) => {
@@ -155,6 +193,15 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
 
     setIsDrawing(false);
     setStartPoint(null);
+    setCurrentRadius(0);
+  };
+
+  const handleMouseLeave = () => {
+    if (isDrawing) {
+      setIsDrawing(false);
+      setStartPoint(null);
+      setCurrentRadius(0);
+    }
   };
 
   return (
@@ -171,7 +218,9 @@ export function ImageCanvas({ imageId }: ImageCanvasProps) {
             <canvas
               ref={canvasRef}
               onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseLeave}
               className="max-w-full h-auto cursor-crosshair"
               style={{ display: "block" }}
             />
