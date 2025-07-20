@@ -19,7 +19,8 @@ bun.lock
 *.tsbuildinfo
 
 # Build outputs
-**/dist/
+**/dist/*
+!**/dist/index.html
 
 # Environment files
 .env
