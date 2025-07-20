@@ -1,7 +1,29 @@
 import { api, APIError, Header } from "encore.dev/api";
 import { appMeta } from "encore.dev";
+import { secret } from "encore.dev/config";
 import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
+
+// Configure frontend URL - defaults to standard Encore pattern if not set
+const frontendUrlSecret = secret("FRONTEND_URL");
+
+// Helper function to get frontend URL
+function getFrontendUrl(): string {
+  // If custom frontend URL is configured, use it
+  const customUrl = frontendUrlSecret();
+  if (customUrl) {
+    return customUrl;
+  }
+  
+  // For standard Encore URLs, convert to frontend pattern
+  const apiUrl = appMeta().apiBaseUrl;
+  if (apiUrl.includes('.encr.app')) {
+    return apiUrl.replace('.encr.app', '.frontend.encr.app');
+  }
+  
+  // For custom domains, assume frontend is served from same domain
+  return apiUrl;
+}
 
 export interface CreateShareLinkRequest {
   imageId: string;
@@ -57,7 +79,7 @@ export const createShareLink = api<CreateShareLinkRequest, CreateShareLinkRespon
     if (existingShare) {
       return {
         shareToken: existingShare.share_token,
-        shareUrl: `${appMeta().apiBaseUrl}/image/${req.imageId}?share=${existingShare.share_token}`,
+        shareUrl: `${getFrontendUrl()}/image/${req.imageId}?share=${existingShare.share_token}`,
       };
     }
 
@@ -78,7 +100,7 @@ export const createShareLink = api<CreateShareLinkRequest, CreateShareLinkRespon
     
     return {
       shareToken: result.share_token,
-      shareUrl: `${appMeta().apiBaseUrl}/image/${req.imageId}?share=${result.share_token}`,
+      shareUrl: `${getFrontendUrl()}/image/${req.imageId}?share=${result.share_token}`,
     };
   }
 );
