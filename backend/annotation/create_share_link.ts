@@ -1,4 +1,5 @@
 import { api, APIError, Header } from "encore.dev/api";
+import { appMeta } from "encore.dev";
 import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
@@ -56,7 +57,7 @@ export const createShareLink = api<CreateShareLinkRequest, CreateShareLinkRespon
     if (existingShare) {
       return {
         shareToken: existingShare.share_token,
-        shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/image/${req.imageId}?share=${existingShare.share_token}`,
+        shareUrl: `${appMeta().apiBaseUrl}/image/${req.imageId}?share=${existingShare.share_token}`,
       };
     }
 
@@ -77,7 +78,7 @@ export const createShareLink = api<CreateShareLinkRequest, CreateShareLinkRespon
     
     return {
       shareToken: result.share_token,
-      shareUrl: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/image/${req.imageId}?share=${result.share_token}`,
+      shareUrl: `${appMeta().apiBaseUrl}/image/${req.imageId}?share=${result.share_token}`,
     };
   }
 );

@@ -125,27 +125,42 @@ The application uses IP-based user identification rather than traditional authen
 ## File Structure
 
 ```
+├── package.json                      # Root workspace configuration
+├── bun.lock                          # Bun lock file
 ├── backend/
-│   └── annotation/
-│       ├── encore.service.ts          # Service definition
-│       ├── db.ts                      # Database configuration
-│       ├── storage.ts                 # Object storage configuration
-│       ├── rate_limiter.ts           # Rate limiting implementation
-│       ├── upload_image.ts           # Image upload endpoint
-│       ├── get_image.ts              # Image retrieval endpoint
-│       ├── list_user_images.ts       # User images listing
-│       ├── create_annotation.ts      # Annotation creation
-│       ├── list_annotations.ts       # Annotation listing
-│       ├── add_chat_message.ts       # Chat message creation
-│       ├── list_chat_messages.ts     # Chat message listing
-│       ├── create_share_link.ts      # Share link generation
-│       └── migrations/               # Database migrations
-│           ├── 1_create_tables.up.sql
-│           ├── 2_add_user_system.up.sql
-│           ├── 3_add_thumbnails.up.sql
-│           └── 4_convert_to_uuids.up.sql
-└── frontend/
+│   ├── encore.app                    # Encore application configuration
+│   ├── package.json                  # Backend dependencies
+│   ├── tsconfig.json                 # TypeScript configuration
+│   ├── annotation/                   # Main service
+│   │   ├── encore.service.ts         # Service definition
+│   │   ├── db.ts                     # Database configuration
+│   │   ├── storage.ts                # Object storage configuration
+│   │   ├── rate_limiter.ts          # Rate limiting implementation
+│   │   ├── upload_image.ts          # Image upload endpoint
+│   │   ├── get_image.ts             # Image retrieval endpoint
+│   │   ├── list_user_images.ts      # User images listing
+│   │   ├── create_annotation.ts     # Annotation creation
+│   │   ├── list_annotations.ts      # Annotation listing
+│   │   ├── add_chat_message.ts      # Chat message creation
+│   │   ├── list_chat_messages.ts    # Chat message listing
+│   │   ├── create_share_link.ts     # Share link generation
+│   │   └── migrations/              # Database migrations
+│   │       ├── 1_create_tables.up.sql
+│   │       ├── 2_add_user_system.up.sql
+│   │       ├── 3_add_thumbnails.up.sql
+│   │       └── 4_convert_to_uuids.up.sql
+│   └── frontend/                     # Frontend service (served by Encore)
+│       ├── encore.service.ts         # Static assets service
+│       └── dist/                     # Built frontend assets
+└── frontend/                         # Source frontend application
+    ├── package.json                  # Frontend dependencies
+    ├── vite.config.ts                # Vite configuration
+    ├── tsconfig.json                 # TypeScript configuration
+    ├── index.html                    # HTML entry point
+    ├── main.tsx                      # React entry point
     ├── App.tsx                       # Main application component
+    ├── index.css                     # Global styles
+    ├── client.ts                     # Generated API client
     └── components/
         ├── ImageUpload.tsx           # File upload interface
         ├── AnnotationScreen.tsx      # Main annotation interface
@@ -159,26 +174,40 @@ The application uses IP-based user identification rather than traditional authen
 ## Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
+- Bun (latest version)
 - Encore CLI installed (`npm install -g @encore/cli`)
 
 ### Installation
 
 1. Clone the repository
-2. Install dependencies (automatically handled by Encore)
-3. Run the development server:
+2. Install dependencies:
    ```bash
-   encore run
+   bun install
+   ```
+3. Build the frontend (one-time setup):
+   ```bash
+   cd backend && bun run build
+   ```
+4. Run the development server:
+   ```bash
+   cd backend && bun run dev
    ```
 
 The application will be available at:
-- Backend API: `http://localhost:4000`
-- Frontend: `http://localhost:3000`
+- **Frontend & Backend**: `http://127.0.0.1:4000`
+- **Development Dashboard**: `http://127.0.0.1:9400/image-annotation-app-y8zi`
+
+### Project Structure
+
+This is a monorepo using Bun workspaces:
+- **Root**: Workspace configuration and shared dependencies
+- **Backend**: Encore.ts application with API endpoints
+- **Frontend**: React + Vite application built and served by Encore
 
 ### Configuration
 
 No additional configuration is required for local development. The application uses:
-- SQLite database (automatically created)
+- PostgreSQL database (automatically provisioned by Encore)
 - Local object storage (automatically configured)
 - In-memory rate limiting
 
@@ -186,6 +215,22 @@ For production deployment, Encore automatically provisions:
 - PostgreSQL database
 - Cloud object storage
 - Proper networking and security
+
+### Development Workflow
+
+1. **Start development mode**: `cd backend && bun run dev`
+   - This starts both Encore backend and Vite watch mode
+   - Frontend automatically rebuilds when you make changes
+2. **Make frontend changes**: Edit files in the `frontend/` directory
+3. **Changes are automatic**: No manual rebuild needed!
+4. **Access the app**: `http://127.0.0.1:4000`
+
+**Alternative commands:**
+- **Manual build**: `cd backend && bun run build`
+- **Watch only**: `cd backend && bun run watch`
+- **Backend only**: `cd backend && encore run`
+
+**Note**: The frontend automatically rebuilds and is served by Encore. For even faster development, you could run a separate Vite dev server on a different port, but this requires CORS configuration.
 
 ## Usage
 

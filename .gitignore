@@ -1,6 +1,27 @@
+# Encore generated files
 .encore
 encore.gen.go
 encore.gen.cue
 /.encore
-node_modules
 /encore.gen
+backend/encore.gen/
+
+# Dependencies
+node_modules
+
+# Package manager locks
+bun.lock
+
+# IDE/Editor files
+.cursorrules
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Build outputs
+**/dist/
+
+# Environment files
+.env
+.env.local
+.env.*.local

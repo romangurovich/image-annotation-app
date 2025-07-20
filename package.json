@@ -6,5 +6,9 @@
   "workspaces": [
     "backend",
     "frontend"
-  ]
+  ],
+  "scripts": {
+    "dev": "cd backend && bun run dev",
+    "install:all": "bun install && cd backend && bun install && cd ../frontend && bun install"
+  }
 }
