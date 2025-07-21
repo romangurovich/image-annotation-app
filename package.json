@@ -19,6 +19,7 @@
     "format": "npm run format:backend && npm run format:frontend",
     "format:backend": "cd backend && bun run format",
     "format:frontend": "cd frontend && bun run format",
+    "format:check": "cd backend && bun run format:check && cd ../frontend && bun run format:check",
     "type-check": "npm run type-check:backend && npm run type-check:frontend",
     "type-check:backend": "cd backend && bun run type-check",
     "type-check:frontend": "cd frontend && bun run type-check",
