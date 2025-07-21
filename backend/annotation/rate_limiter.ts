@@ -11,7 +11,7 @@ class InMemoryRateLimiter {
   constructor(windowMs: number = 60000, maxRequests: number = 100) {
     this.windowMs = windowMs;
     this.maxRequests = maxRequests;
-    
+
     // Clean up expired entries every minute
     setInterval(() => this.cleanup(), 60000);
   }
@@ -25,7 +25,11 @@ class InMemoryRateLimiter {
     }
   }
 
-  checkLimit(identifier: string): { allowed: boolean; remaining: number; resetTime: number } {
+  checkLimit(identifier: string): {
+    allowed: boolean;
+    remaining: number;
+    resetTime: number;
+  } {
     const now = Date.now();
     const entry = this.limits.get(identifier);
 
@@ -66,25 +70,27 @@ export const generalLimiter = new InMemoryRateLimiter(60000, 100); // 100 reques
 export const uploadLimiter = new InMemoryRateLimiter(300000, 10); // 10 uploads per 5 minutes
 export const chatLimiter = new InMemoryRateLimiter(60000, 50); // 50 chat messages per minute
 
-export function getClientIP(headers: Record<string, string | undefined>): string {
+export function getClientIP(
+  headers: Record<string, string | undefined>
+): string {
   // Try to get real IP from common headers
-  const xForwardedFor = headers['x-forwarded-for'];
-  const xRealIP = headers['x-real-ip'];
-  const cfConnectingIP = headers['cf-connecting-ip'];
-  
+  const xForwardedFor = headers["x-forwarded-for"];
+  const xRealIP = headers["x-real-ip"];
+  const cfConnectingIP = headers["cf-connecting-ip"];
+
   if (xForwardedFor) {
     // X-Forwarded-For can contain multiple IPs, take the first one
-    return xForwardedFor.split(',')[0].trim();
+    return xForwardedFor.split(",")[0].trim();
   }
-  
+
   if (xRealIP) {
     return xRealIP;
   }
-  
+
   if (cfConnectingIP) {
     return cfConnectingIP;
   }
-  
+
   // Fallback to a default identifier
-  return 'unknown';
+  return "unknown";
 }

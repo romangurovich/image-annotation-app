@@ -13,15 +13,15 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
 
   const createThumbnail = (file: File): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      const img = new Image();
-      
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+      const img = new window.Image();
+
       img.onload = () => {
         // Calculate thumbnail dimensions (max 400px width/height, maintain aspect ratio)
         const maxSize = 400;
         let { width, height } = img;
-        
+
         if (width > height) {
           if (width > maxSize) {
             height = (height * maxSize) / width;
@@ -33,32 +33,34 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
             height = maxSize;
           }
         }
-        
+
         canvas.width = width;
         canvas.height = height;
-        
+
         // Draw and compress the image
         ctx!.drawImage(img, 0, 0, width, height);
-        
+
         canvas.toBlob(
           (blob) => {
             if (blob) {
               resolve(blob);
             } else {
-              reject(new Error('Failed to create thumbnail'));
+              reject(new Error("Failed to create thumbnail"));
             }
           },
-          'image/jpeg',
+          "image/jpeg",
           0.8 // 80% quality
         );
       };
-      
-      img.onerror = () => reject(new Error('Failed to load image'));
+
+      img.onerror = () => reject(new Error("Failed to load image"));
       img.src = URL.createObjectURL(file);
     });
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -110,15 +112,19 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
           headers: {
             "Content-Type": "image/jpeg",
           },
-        })
+        }),
       ]);
 
       if (!uploadResponse.ok) {
-        throw new Error(`Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`);
+        throw new Error(
+          `Upload failed: ${uploadResponse.status} ${uploadResponse.statusText}`
+        );
       }
 
       if (!thumbnailResponse.ok) {
-        console.warn(`Thumbnail upload failed: ${thumbnailResponse.status} ${thumbnailResponse.statusText}`);
+        console.warn(
+          `Thumbnail upload failed: ${thumbnailResponse.status} ${thumbnailResponse.statusText}`
+        );
         // Continue even if thumbnail upload fails
       }
 
@@ -127,13 +133,16 @@ export function ImageUpload({ onImageUploaded }: ImageUploadProps) {
         title: "Image uploaded successfully",
         description: "You can now start annotating your image.",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { code?: string; message?: string };
       console.error("Upload error:", error);
-      
-      if (error?.code === "resource_exhausted") {
+
+      if (apiError?.code === "resource_exhausted") {
         toast({
           title: "Upload rate limit exceeded",
-          description: error.message || "Too many uploads. Please wait before uploading another image.",
+          description:
+            apiError.message ||
+            "Too many uploads. Please wait before uploading another image.",
           variant: "destructive",
         });
       } else {

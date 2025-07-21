@@ -16,42 +16,47 @@ export function ChatPanel({ annotationId, shareToken }: ChatPanelProps) {
   const { toast } = useToast();
 
   useEffect(() => {
-    loadMessages();
-  }, [annotationId, shareToken]);
+    const loadMessages = async () => {
+      try {
+        const params: { annotationId: string; shareToken?: string } = {
+          annotationId,
+        };
+        if (shareToken) {
+          params.shareToken = shareToken;
+        }
 
-  const loadMessages = async () => {
-    try {
-      const params: any = { annotationId };
-      if (shareToken) {
-        params.shareToken = shareToken;
+        const response = await backend.annotation.listChatMessages(params);
+        setMessages(response.messages);
+      } catch (error: unknown) {
+        const apiError = error as { code?: string; message?: string };
+        console.error("Failed to load messages:", error);
+
+        if (apiError?.code === "permission_denied") {
+          toast({
+            title: "Access denied",
+            description: "You don't have permission to view these messages.",
+            variant: "destructive",
+          });
+        } else if (apiError?.code === "resource_exhausted") {
+          toast({
+            title: "Rate limit exceeded",
+            description:
+              apiError.message ||
+              "Too many requests. Please wait before trying again.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Failed to load messages",
+            description: "Could not load chat messages.",
+            variant: "destructive",
+          });
+        }
       }
-      
-      const response = await backend.annotation.listChatMessages(params);
-      setMessages(response.messages);
-    } catch (error: any) {
-      console.error("Failed to load messages:", error);
-      
-      if (error?.code === "permission_denied") {
-        toast({
-          title: "Access denied",
-          description: "You don't have permission to view these messages.",
-          variant: "destructive",
-        });
-      } else if (error?.code === "resource_exhausted") {
-        toast({
-          title: "Rate limit exceeded",
-          description: error.message || "Too many requests. Please wait before trying again.",
-          variant: "destructive",
-        });
-      } else {
-        toast({
-          title: "Failed to load messages",
-          description: "Could not load chat messages.",
-          variant: "destructive",
-        });
-      }
-    }
-  };
+    };
+
+    loadMessages();
+  }, [annotationId, shareToken, toast]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,37 +74,45 @@ export function ChatPanel({ annotationId, shareToken }: ChatPanelProps) {
 
     setIsLoading(true);
     try {
-      const params: any = {
+      const params: {
+        annotationId: string;
+        message: string;
+        shareToken?: string;
+      } = {
         annotationId,
         message: newMessage.trim(),
       };
       if (shareToken) {
         params.shareToken = shareToken;
       }
-      
+
       const message = await backend.annotation.addChatMessage(params);
 
       setMessages([...messages, message]);
       setNewMessage("");
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { code?: string; message?: string };
       console.error("Failed to send message:", error);
-      
-      if (error?.code === "permission_denied") {
+
+      if (apiError?.code === "permission_denied") {
         toast({
           title: "Permission denied",
           description: "You don't have permission to send messages.",
           variant: "destructive",
         });
-      } else if (error?.code === "resource_exhausted") {
+      } else if (apiError?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
-          description: error.message || "Too many messages. Please wait before sending another.",
+          description:
+            apiError.message ||
+            "Too many messages. Please wait before sending another.",
           variant: "destructive",
         });
-      } else if (error?.code === "invalid_argument") {
+      } else if (apiError?.code === "invalid_argument") {
         toast({
           title: "Invalid message",
-          description: error.message || "Please check your message and try again.",
+          description:
+            apiError.message || "Please check your message and try again.",
           variant: "destructive",
         });
       } else {

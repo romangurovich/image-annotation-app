@@ -25,20 +25,26 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
   async (req) => {
     // Rate limiting
     const clientIP = getClientIP({
-      'x-forwarded-for': req.xForwardedFor,
-      'x-real-ip': req.xRealIP,
-      'cf-connecting-ip': req.cfConnectingIP,
+      "x-forwarded-for": req.xForwardedFor,
+      "x-real-ip": req.xRealIP,
+      "cf-connecting-ip": req.cfConnectingIP,
     });
-    
+
     const rateLimitResult = chatLimiter.checkLimit(clientIP);
     if (!rateLimitResult.allowed) {
-      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
-      throw APIError.resourceExhausted(`Chat rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+      const resetTimeSeconds = Math.ceil(
+        (rateLimitResult.resetTime - Date.now()) / 1000
+      );
+      throw APIError.resourceExhausted(
+        `Chat rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`
+      );
     }
 
     // Validate message length
     if (req.message.length > 1000) {
-      throw APIError.invalidArgument("Message too long. Maximum 1000 characters allowed.");
+      throw APIError.invalidArgument(
+        "Message too long. Maximum 1000 characters allowed."
+      );
     }
 
     if (req.message.trim().length === 0) {
@@ -55,7 +61,7 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
       JOIN images i ON a.image_id = i.id
       WHERE a.id = ${req.annotationId}
     `;
-    
+
     if (!annotationData) {
       throw APIError.notFound("Annotation not found");
     }
@@ -68,7 +74,7 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
         SELECT id FROM image_shares
         WHERE image_id = ${annotationData.image_id} AND share_token = ${req.shareToken}
       `;
-      
+
       if (shareRecord) {
         hasAccess = true;
       }
@@ -86,11 +92,11 @@ export const addChatMessage = api<AddChatMessageRequest, ChatMessage>(
       VALUES (${req.annotationId}, ${req.message}, ${clientIP})
       RETURNING id, created_at
     `;
-    
+
     if (!result) {
       throw new Error("Failed to add chat message");
     }
-    
+
     return {
       id: result.id,
       annotationId: req.annotationId,

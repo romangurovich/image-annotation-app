@@ -9,7 +9,7 @@ export function AnnotationPageContent() {
 
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('share');
+    const token = urlParams.get("share");
     if (token) {
       setShareToken(token);
     }

@@ -23,20 +23,27 @@ export interface ChatMessage {
 }
 
 // Retrieves all chat messages for an annotation.
-export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResponse>(
+export const listChatMessages = api<
+  ListChatMessagesParams,
+  ListChatMessagesResponse
+>(
   { expose: true, method: "GET", path: "/annotations/:annotationId/messages" },
   async (params) => {
     // Rate limiting
     const clientIP = getClientIP({
-      'x-forwarded-for': params.xForwardedFor,
-      'x-real-ip': params.xRealIP,
-      'cf-connecting-ip': params.cfConnectingIP,
+      "x-forwarded-for": params.xForwardedFor,
+      "x-real-ip": params.xRealIP,
+      "cf-connecting-ip": params.cfConnectingIP,
     });
-    
+
     const rateLimitResult = generalLimiter.checkLimit(clientIP);
     if (!rateLimitResult.allowed) {
-      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
-      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+      const resetTimeSeconds = Math.ceil(
+        (rateLimitResult.resetTime - Date.now()) / 1000
+      );
+      throw APIError.resourceExhausted(
+        `Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`
+      );
     }
 
     // Check if user has access to this annotation's image
@@ -49,7 +56,7 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
       JOIN images i ON a.image_id = i.id
       WHERE a.id = ${params.annotationId}
     `;
-    
+
     if (!annotationData) {
       throw APIError.notFound("Annotation not found");
     }
@@ -62,7 +69,7 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
         SELECT id FROM image_shares
         WHERE image_id = ${annotationData.image_id} AND share_token = ${params.shareToken}
       `;
-      
+
       if (shareRecord) {
         hasAccess = true;
       }
@@ -73,7 +80,7 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
     }
 
     const messages: ChatMessage[] = [];
-    
+
     for await (const row of annotationDB.query<{
       id: string;
       annotation_id: string;
@@ -94,7 +101,7 @@ export const listChatMessages = api<ListChatMessagesParams, ListChatMessagesResp
         createdAt: row.created_at,
       });
     }
-    
+
     return { messages };
   }
 );

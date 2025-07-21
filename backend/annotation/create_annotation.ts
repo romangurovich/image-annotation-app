@@ -28,15 +28,19 @@ export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
   async (req) => {
     // Rate limiting
     const clientIP = getClientIP({
-      'x-forwarded-for': req.xForwardedFor,
-      'x-real-ip': req.xRealIP,
-      'cf-connecting-ip': req.cfConnectingIP,
+      "x-forwarded-for": req.xForwardedFor,
+      "x-real-ip": req.xRealIP,
+      "cf-connecting-ip": req.cfConnectingIP,
     });
-    
+
     const rateLimitResult = generalLimiter.checkLimit(clientIP);
     if (!rateLimitResult.allowed) {
-      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
-      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+      const resetTimeSeconds = Math.ceil(
+        (rateLimitResult.resetTime - Date.now()) / 1000
+      );
+      throw APIError.resourceExhausted(
+        `Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`
+      );
     }
 
     // Check if user has access to this image
@@ -45,7 +49,7 @@ export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
     }>`
       SELECT user_ip FROM images WHERE id = ${req.imageId}
     `;
-    
+
     if (!image) {
       throw APIError.notFound("Image not found");
     }
@@ -58,7 +62,7 @@ export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
         SELECT id FROM image_shares
         WHERE image_id = ${req.imageId} AND share_token = ${req.shareToken}
       `;
-      
+
       if (shareRecord) {
         hasAccess = true;
       }
@@ -76,11 +80,11 @@ export const createAnnotation = api<CreateAnnotationRequest, Annotation>(
       VALUES (${req.imageId}, ${req.x}, ${req.y}, ${req.radius})
       RETURNING id, created_at
     `;
-    
+
     if (!result) {
       throw new Error("Failed to create annotation");
     }
-    
+
     return {
       id: result.id,
       imageId: req.imageId,

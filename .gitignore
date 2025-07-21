@@ -26,3 +26,7 @@ bun.lock
 .env
 .env.local
 .env.*.local
+
+# Husky git hooks
+.husky/
+.huskyrc

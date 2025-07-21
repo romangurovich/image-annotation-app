@@ -6,13 +6,23 @@
   "scripts": {
     "build": "cd ../frontend && bun install && vite build --outDir=../backend/frontend/dist",
     "watch": "cd ../frontend && vite build --outDir=../backend/frontend/dist --watch",
-    "dev": "bun run watch & encore run"
+    "dev": "bun run watch & encore run",
+    "lint": "eslint . --max-warnings 0",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "type-check": "tsc --noEmit",
+    "test": "echo \"No tests specified\" && exit 0"
   },
   "dependencies": {
     "encore.dev": "^1.48.10"
   },
   "devDependencies": {
     "@types/node": "^24.0.15",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0",
     "typescript": "^5.8.3"
   }
 }

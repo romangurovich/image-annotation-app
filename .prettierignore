@@ -1,0 +1,5 @@
+# Ignore all assets directories for Prettier
+assets/
+backend/frontend/dist/
+frontend/dist/
+encore.gen/

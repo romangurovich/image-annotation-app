@@ -24,20 +24,27 @@ export interface Annotation {
 }
 
 // Retrieves all annotations for an image.
-export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsResponse>(
+export const listAnnotations = api<
+  ListAnnotationsParams,
+  ListAnnotationsResponse
+>(
   { expose: true, method: "GET", path: "/images/:imageId/annotations" },
   async (params) => {
     // Rate limiting
     const clientIP = getClientIP({
-      'x-forwarded-for': params.xForwardedFor,
-      'x-real-ip': params.xRealIP,
-      'cf-connecting-ip': params.cfConnectingIP,
+      "x-forwarded-for": params.xForwardedFor,
+      "x-real-ip": params.xRealIP,
+      "cf-connecting-ip": params.cfConnectingIP,
     });
-    
+
     const rateLimitResult = generalLimiter.checkLimit(clientIP);
     if (!rateLimitResult.allowed) {
-      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
-      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+      const resetTimeSeconds = Math.ceil(
+        (rateLimitResult.resetTime - Date.now()) / 1000
+      );
+      throw APIError.resourceExhausted(
+        `Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`
+      );
     }
 
     // Check if user has access to this image
@@ -46,7 +53,7 @@ export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsRespons
     }>`
       SELECT user_ip FROM images WHERE id = ${params.imageId}
     `;
-    
+
     if (!image) {
       throw APIError.notFound("Image not found");
     }
@@ -59,7 +66,7 @@ export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsRespons
         SELECT id FROM image_shares
         WHERE image_id = ${params.imageId} AND share_token = ${params.shareToken}
       `;
-      
+
       if (shareRecord) {
         hasAccess = true;
       }
@@ -70,7 +77,7 @@ export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsRespons
     }
 
     const annotations: Annotation[] = [];
-    
+
     for await (const row of annotationDB.query<{
       id: string;
       image_id: string;
@@ -93,7 +100,7 @@ export const listAnnotations = api<ListAnnotationsParams, ListAnnotationsRespons
         createdAt: row.created_at,
       });
     }
-    
+
     return { annotations };
   }
 );

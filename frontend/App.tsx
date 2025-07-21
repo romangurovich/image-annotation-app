@@ -1,5 +1,10 @@
 import { useState } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
 import { ImageUpload } from "./components/ImageUpload";
 import { UserImages } from "./components/UserImages";
 import { ImagePageContent } from "./components/ImagePageContent";
@@ -14,11 +19,14 @@ export default function App() {
           <h1 className="text-3xl font-bold text-center mb-8 text-gray-900">
             Image Annotation Tool
           </h1>
-          
+
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/image/:imageId" element={<ImagePageContent />} />
-            <Route path="/annotate/:imageId" element={<AnnotationPageContent />} />
+            <Route
+              path="/annotate/:imageId"
+              element={<AnnotationPageContent />}
+            />
             <Route path="/my-images" element={<UserImages />} />
           </Routes>
         </div>

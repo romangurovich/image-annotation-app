@@ -26,15 +26,19 @@ export const getImage = api<GetImageParams, ImageData>(
   async (params) => {
     // Rate limiting
     const clientIP = getClientIP({
-      'x-forwarded-for': params.xForwardedFor,
-      'x-real-ip': params.xRealIP,
-      'cf-connecting-ip': params.cfConnectingIP,
+      "x-forwarded-for": params.xForwardedFor,
+      "x-real-ip": params.xRealIP,
+      "cf-connecting-ip": params.cfConnectingIP,
     });
-    
+
     const rateLimitResult = generalLimiter.checkLimit(clientIP);
     if (!rateLimitResult.allowed) {
-      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
-      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+      const resetTimeSeconds = Math.ceil(
+        (rateLimitResult.resetTime - Date.now()) / 1000
+      );
+      throw APIError.resourceExhausted(
+        `Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`
+      );
     }
 
     const image = await annotationDB.queryRow<{
@@ -48,7 +52,7 @@ export const getImage = api<GetImageParams, ImageData>(
       FROM images
       WHERE id = ${params.id}
     `;
-    
+
     if (!image) {
       throw APIError.notFound("Image not found");
     }
@@ -62,20 +66,20 @@ export const getImage = api<GetImageParams, ImageData>(
         SELECT id FROM image_shares
         WHERE image_id = ${params.id} AND share_token = ${params.shareToken}
       `;
-      
+
       if (!shareRecord) {
         throw APIError.notFound("Invalid share token");
       }
-      
+
       // Shared users can edit (comment) but not own the image
       canEdit = true;
     } else if (!canEdit) {
       // No share token and not the owner
       throw APIError.permissionDenied("Access denied");
     }
-    
+
     const imageUrl = imagesBucket.publicUrl(image.filename);
-    
+
     return {
       id: image.id,
       filename: image.filename,

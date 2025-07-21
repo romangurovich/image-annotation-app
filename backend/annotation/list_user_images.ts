@@ -29,19 +29,23 @@ export const listUserImages = api<ListUserImagesParams, ListUserImagesResponse>(
   async (params) => {
     // Rate limiting
     const clientIP = getClientIP({
-      'x-forwarded-for': params.xForwardedFor,
-      'x-real-ip': params.xRealIP,
-      'cf-connecting-ip': params.cfConnectingIP,
+      "x-forwarded-for": params.xForwardedFor,
+      "x-real-ip": params.xRealIP,
+      "cf-connecting-ip": params.cfConnectingIP,
     });
-    
+
     const rateLimitResult = generalLimiter.checkLimit(clientIP);
     if (!rateLimitResult.allowed) {
-      const resetTimeSeconds = Math.ceil((rateLimitResult.resetTime - Date.now()) / 1000);
-      throw APIError.resourceExhausted(`Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`);
+      const resetTimeSeconds = Math.ceil(
+        (rateLimitResult.resetTime - Date.now()) / 1000
+      );
+      throw APIError.resourceExhausted(
+        `Rate limit exceeded. Try again in ${resetTimeSeconds} seconds.`
+      );
     }
 
     const images: UserImage[] = [];
-    
+
     for await (const row of annotationDB.query<{
       id: string;
       filename: string;
@@ -64,8 +68,10 @@ export const listUserImages = api<ListUserImagesParams, ListUserImagesResponse>(
       ORDER BY i.created_at DESC
     `) {
       const imageUrl = imagesBucket.publicUrl(row.filename);
-      const thumbnailUrl = row.thumbnail_filename ? imagesBucket.publicUrl(row.thumbnail_filename) : null;
-      
+      const thumbnailUrl = row.thumbnail_filename
+        ? imagesBucket.publicUrl(row.thumbnail_filename)
+        : null;
+
       images.push({
         id: row.id,
         filename: row.filename,
@@ -76,7 +82,7 @@ export const listUserImages = api<ListUserImagesParams, ListUserImagesResponse>(
         annotationCount: Number(row.annotation_count),
       });
     }
-    
+
     return { images };
   }
 );

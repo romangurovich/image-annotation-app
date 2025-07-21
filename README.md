@@ -1,5 +1,7 @@
 # Image Annotation Tool
 
+[![CI/CD Pipeline](https://github.com/romangurovich/image-annotation-app/actions/workflows/ci.yml/badge.svg)](https://github.com/romangurovich/image-annotation-app/actions/workflows/ci.yml)
+
 A collaborative image annotation platform that allows users to upload images, create circular annotations, and engage in threaded discussions about specific areas of interest. Built with Encore.ts backend and React frontend.
 
 ## Features

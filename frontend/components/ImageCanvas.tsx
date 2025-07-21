@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from "react";
-import { MessageCircle, X, Share2, Copy } from "lucide-react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { MessageCircle, X, Share2 } from "lucide-react";
 import backend from "~backend/client";
 import { useToast } from "@/components/ui/use-toast";
 import { ChatPanel } from "./ChatPanel";
@@ -15,40 +15,38 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
   const imageRef = useRef<HTMLImageElement | null>(null);
   const [imageUrl, setImageUrl] = useState<string>("");
   const [annotations, setAnnotations] = useState<Annotation[]>([]);
-  const [selectedAnnotation, setSelectedAnnotation] = useState<Annotation | null>(null);
+  const [selectedAnnotation, setSelectedAnnotation] =
+    useState<Annotation | null>(null);
   const [canEdit, setCanEdit] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string>("");
   const [imageLoaded, setImageLoaded] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadImage();
-    loadAnnotations();
-  }, [imageId, shareToken]);
-
-  const loadImage = async () => {
+  const loadImage = useCallback(async () => {
     try {
-      const params: any = { id: imageId };
+      const params: { id: string; shareToken?: string } = { id: imageId };
       if (shareToken) {
         params.shareToken = shareToken;
       }
-      
+
       const response = await backend.annotation.getImage(params);
       setImageUrl(response.imageUrl);
       setCanEdit(response.canEdit);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { code?: string; message?: string };
       console.error("Failed to load image:", error);
-      
-      if (error?.code === "permission_denied") {
+
+      if (apiError?.code === "permission_denied") {
         toast({
           title: "Access denied",
           description: "You don't have permission to view this image.",
           variant: "destructive",
         });
-      } else if (error?.code === "resource_exhausted") {
+      } else if (apiError?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
-          description: error.message || "Too many requests. Please wait before trying again.",
+          description:
+            apiError.message ||
+            "Too many requests. Please wait before trying again.",
           variant: "destructive",
         });
       } else {
@@ -59,27 +57,30 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
         });
       }
     }
-  };
+  }, [imageId, shareToken, toast]);
 
-  const loadAnnotations = async () => {
+  const loadAnnotations = useCallback(async () => {
     try {
-      const params: any = { imageId };
+      const params: { imageId: string; shareToken?: string } = { imageId };
       if (shareToken) {
         params.shareToken = shareToken;
       }
-      
+
       const response = await backend.annotation.listAnnotations(params);
       setAnnotations(response.annotations);
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { code?: string; message?: string };
       console.error("Failed to load annotations:", error);
-      
-      if (error?.code === "permission_denied") {
+
+      if (apiError?.code === "permission_denied") {
         // Don't show error for annotations if user doesn't have access
         return;
-      } else if (error?.code === "resource_exhausted") {
+      } else if (apiError?.code === "resource_exhausted") {
         toast({
           title: "Rate limit exceeded",
-          description: error.message || "Too many requests. Please wait before trying again.",
+          description:
+            apiError.message ||
+            "Too many requests. Please wait before trying again.",
           variant: "destructive",
         });
       } else {
@@ -90,7 +91,12 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
         });
       }
     }
-  };
+  }, [imageId, shareToken, toast]);
+
+  useEffect(() => {
+    loadImage();
+    loadAnnotations();
+  }, [loadImage, loadAnnotations]);
 
   const copyToClipboard = async (text: string) => {
     try {
@@ -100,26 +106,26 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
         return true;
       } else {
         // Fallback for older browsers or non-secure contexts
-        const textArea = document.createElement('textarea');
+        const textArea = document.createElement("textarea");
         textArea.value = text;
-        textArea.style.position = 'fixed';
-        textArea.style.left = '-999999px';
-        textArea.style.top = '-999999px';
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
         document.body.appendChild(textArea);
         textArea.focus();
         textArea.select();
-        
-        const successful = document.execCommand('copy');
+
+        const successful = document.execCommand("copy");
         document.body.removeChild(textArea);
-        
+
         if (successful) {
           return true;
         } else {
-          throw new Error('Copy command failed');
+          throw new Error("Copy command failed");
         }
       }
     } catch (error) {
-      console.error('Failed to copy to clipboard:', error);
+      console.error("Failed to copy to clipboard:", error);
       return false;
     }
   };
@@ -127,11 +133,10 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
   const createShareLink = async () => {
     try {
       const response = await backend.annotation.createShareLink({ imageId });
-      setShareUrl(response.shareUrl);
-      
+
       // Try to copy to clipboard
       const copied = await copyToClipboard(response.shareUrl);
-      
+
       if (copied) {
         toast({
           title: "Share link created",
@@ -143,10 +148,11 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
           description: `Link: ${response.shareUrl}`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const apiError = error as { code?: string; message?: string };
       console.error("Failed to create share link:", error);
-      
-      if (error?.code === "permission_denied") {
+
+      if (apiError?.code === "permission_denied") {
         toast({
           title: "Permission denied",
           description: "Only the image owner can create share links.",
@@ -162,7 +168,7 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
     }
   };
 
-  const drawCanvas = () => {
+  const drawCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !imageRef.current || !imageLoaded) return;
 
@@ -179,19 +185,23 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
     annotations.forEach((annotation) => {
       ctx.beginPath();
       ctx.arc(annotation.x, annotation.y, annotation.radius, 0, 2 * Math.PI);
-      ctx.strokeStyle = selectedAnnotation?.id === annotation.id ? "#ef4444" : "#3b82f6";
+      ctx.strokeStyle =
+        selectedAnnotation?.id === annotation.id ? "#ef4444" : "#3b82f6";
       ctx.lineWidth = 2;
       ctx.stroke();
-      ctx.fillStyle = selectedAnnotation?.id === annotation.id ? "rgba(239, 68, 68, 0.1)" : "rgba(59, 130, 246, 0.1)";
+      ctx.fillStyle =
+        selectedAnnotation?.id === annotation.id
+          ? "rgba(239, 68, 68, 0.1)"
+          : "rgba(59, 130, 246, 0.1)";
       ctx.fill();
     });
-  };
+  }, [imageLoaded, annotations, selectedAnnotation]);
 
-  const setupCanvas = () => {
+  const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !imageUrl) return;
 
-    const img = new Image();
+    const img = new window.Image();
     img.onload = () => {
       canvas.width = img.width;
       canvas.height = img.height;
@@ -199,19 +209,19 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
       setImageLoaded(true);
     };
     img.src = imageUrl;
-  };
+  }, [imageUrl]);
 
   useEffect(() => {
     if (imageUrl) {
       setupCanvas();
     }
-  }, [imageUrl]);
+  }, [imageUrl, setupCanvas]);
 
   useEffect(() => {
     if (imageLoaded) {
       drawCanvas();
     }
-  }, [imageLoaded, annotations, selectedAnnotation]);
+  }, [imageLoaded, drawCanvas]);
 
   const getCanvasCoordinates = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
@@ -229,11 +239,12 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
 
   const handleMouseDown = (event: React.MouseEvent<HTMLCanvasElement>) => {
     const coords = getCanvasCoordinates(event);
-    
+
     // Check if clicking on existing annotation
     const clickedAnnotation = annotations.find((annotation) => {
       const distance = Math.sqrt(
-        Math.pow(coords.x - annotation.x, 2) + Math.pow(coords.y - annotation.y, 2)
+        Math.pow(coords.x - annotation.x, 2) +
+          Math.pow(coords.y - annotation.y, 2)
       );
       return distance <= annotation.radius;
     });
@@ -269,7 +280,8 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
           {shareToken && (
             <div className="mb-4 p-3 bg-blue-50 rounded-lg">
               <p className="text-sm text-blue-800">
-                You're viewing a shared image. You can comment on annotations but cannot create new ones.
+                You&apos;re viewing a shared image. You can comment on
+                annotations but cannot create new ones.
               </p>
             </div>
           )}
@@ -288,9 +300,7 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
         <div className="w-80">
           <div className="bg-white rounded-lg shadow-lg">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold text-gray-900">
-                Annotation Chat
-              </h3>
+              <h3 className="font-semibold text-gray-900">Annotation Chat</h3>
               <button
                 onClick={() => setSelectedAnnotation(null)}
                 className="p-1 hover:bg-gray-100 rounded"
@@ -298,7 +308,10 @@ export function ImageCanvas({ imageId, shareToken }: ImageCanvasProps) {
                 <X className="h-4 w-4" />
               </button>
             </div>
-            <ChatPanel annotationId={selectedAnnotation.id} shareToken={shareToken} />
+            <ChatPanel
+              annotationId={selectedAnnotation.id}
+              shareToken={shareToken}
+            />
           </div>
         </div>
       )}
