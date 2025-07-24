@@ -1,20 +1,10 @@
 import { api, APIError, Header } from "encore.dev/api";
 import { appMeta } from "encore.dev";
-import { secret } from "encore.dev/config";
 import { annotationDB } from "./db";
 import { generalLimiter, getClientIP } from "./rate_limiter";
 
-// Configure frontend URL - defaults to standard Encore pattern if not set
-const frontendUrlSecret = secret("FRONTEND_URL");
-
 // Helper function to get frontend URL
 function getFrontendUrl(): string {
-  // If custom frontend URL is configured, use it
-  const customUrl = frontendUrlSecret();
-  if (customUrl) {
-    return customUrl;
-  }
-
   // For standard Encore URLs, convert to frontend pattern
   const apiUrl = appMeta().apiBaseUrl;
   if (apiUrl.includes(".encr.app")) {
